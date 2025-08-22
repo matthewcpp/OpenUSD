@@ -320,14 +320,26 @@ function(_install_resource_files NAME pluginInstallPrefix pluginToLibraryPath)
                     ${resourceFile} ${plugInfoFile})
             endif()
             set(resourceFile "${plugInfoFile}")
+            set(emscriptenResourceFile ${resourceFile})
+        else()
+            set(emscriptenResourceFile "${CMAKE_CURRENT_SOURCE_DIR}/${resourceFile}")
         endif()
 
+        if (EMSCRIPTEN)
+            string(REGEX REPLACE "^lib\\/" "/" emscriptenLocalPath "${resourcesPath}")
+
+            list(APPEND emscriptenResourceFiles "--preload-file ${emscriptenResourceFile}@${emscriptenLocalPath}/${dirPath}/${destFileName}")
+        endif()
         install(
             FILES ${resourceFile}
             DESTINATION ${resourcesPath}/${dirPath}
             RENAME ${destFileName}
         )
     endforeach()
+
+    if (EMSCRIPTEN)
+        target_link_options(${NAME} PUBLIC ${emscriptenResourceFiles})
+    endif()
 endfunction() # _install_resource_files
 
 function(_install_pyside_ui_files LIBRARY_NAME)
@@ -807,8 +819,22 @@ endfunction()
 #      always want those.
 #
 function(_pxr_target_link_libraries NAME)
+    set(options
+        IS_STATIC_PLUGIN
+    )
+    set(oneValueArgs
+    )
+    set(multiValueArgs
+    )
+    cmake_parse_arguments(args
+        "${options}"
+        "${oneValueArgs}"
+        "${multiValueArgs}"
+        ${ARGN}
+    )
+
     # Split core libraries from non-core libraries.
-    _pxr_split_libraries("${ARGN}" internal external)
+    _pxr_split_libraries("${args_UNPARSED_ARGUMENTS}" internal external)
 
     get_property(type TARGET ${NAME} PROPERTY TYPE)
     if("${type}" STREQUAL "OBJECT_LIBRARY")
@@ -944,7 +970,7 @@ function(_pxr_target_link_libraries NAME)
                     #
                     list(APPEND final -WHOLEARCHIVE:$<TARGET_FILE:${lib}>)
                     list(APPEND final ${lib})
-                elseif(CMAKE_COMPILER_IS_GNUCXX)
+                elseif(CMAKE_COMPILER_IS_GNUCXX OR EMSCRIPTEN)
                     list(APPEND final -Wl,--whole-archive ${lib} -Wl,--no-whole-archive)
                 elseif("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
                     list(APPEND final -Wl,-force_load ${lib})
@@ -1372,6 +1398,7 @@ function(_pxr_library NAME)
             IMPORT_PREFIX "${args_PREFIX}"            
             PREFIX "${args_PREFIX}"
             SUFFIX "${args_SUFFIX}"
+            OUTPUT_NAME ${NAME}
     )
 
     target_compile_definitions(${NAME}
@@ -1432,7 +1459,11 @@ function(_pxr_library NAME)
     endif()
 
     # XXX -- May want some plugins to be baked into monolithic.
-    _pxr_target_link_libraries(${NAME} ${args_LIBRARIES})
+    set(ADDITIONAL_ARGS )
+    if(EMSCRIPTEN)
+        list(APPEND ADDITIONAL_ARGS IS_STATIC_PLUGIN)
+    endif()
+    _pxr_target_link_libraries(${NAME} ${ADDITIONAL_ARGS} ${args_LIBRARIES})
 
     # Rpath has libraries under the third party prefix and the install prefix.
     # The former is for helper libraries for a third party application and

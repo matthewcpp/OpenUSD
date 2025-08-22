@@ -201,8 +201,17 @@ class VtValue
         std::is_nothrow_move_constructible<T>::value &&
         std::is_nothrow_move_assignable<T>::value>;
 
+    #if defined(ARCH_OS_WASM_VM)
+    // for 32bit wasm we want to ensure that this structure is
+    // aligned to 8 bytes so that we have enough room to store
+    // all TypeInfo related flags of which there are three.
+    #define VT_VALUE_TYPEINFO_ALIGN alignas(8)
+    #else
+    #define VT_VALUE_TYPEINFO_ALIGN 
+    #endif
+
     // Type information base class.
-    struct _TypeInfo {
+    struct VT_VALUE_TYPEINFO_ALIGN _TypeInfo {
     private:
         using _CopyInitFunc = void (*)(_Storage const &, _Storage &);
         using _DestroyFunc = void (*)(_Storage &);
@@ -832,6 +841,9 @@ class VtValue
     struct _Init {
         using StoredType = typename Vt_ValueGetStored<T>::Type;
         using TypeInfo = _TypeInfoFor<StoredType>;
+
+        static_assert(TfPointerAndBits<const _TypeInfo>::GetMaxValue() >= 
+            (_LocalFlag | _TrivialCopyFlag | _ProxyFlag));
 
         static TfPointerAndBits<const _TypeInfo> _GetTypeInfo() {
             static const TypeInfo ti;
