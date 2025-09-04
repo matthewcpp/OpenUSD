@@ -2347,13 +2347,6 @@ class InstallContext:
         else:
             self.buildTarget = ""
 
-        # When building emscripten on Windows, if no generator is specified we will default to Ninja
-        # due to the fact that the default Visual Studio build system does not build emscripten projects.
-        # Ninja, being cross platform, is a good default as it is open source cross platform tool that
-        # is simple to setup.
-        if self.targetWasm and Windows() and not self.cmakeGenerator:
-            self.cmakeGenerator = 'Ninja'
-
         self.useCXX11ABI = \
             (args.use_cxx11_abi if hasattr(args, "use_cxx11_abi") else None)
         self.safetyFirst = args.safety_first
@@ -2427,7 +2420,8 @@ class InstallContext:
         # Note: wasm build requires requires building oneTBB
         # In this case, if the option is not explicitly passed on the command
         # line we want to default to a reasonable value.
-        self.buildOneTBB = args.build_onetbb if args.build_onetbb is not None else self.targetWasm
+        self.buildOneTBB = args.build_onetbb \
+            if args.build_onetbb is not None else self.targetWasm
 
         # - Spline Tests
         self.buildMayapyTests = args.build_mayapy_tests
@@ -2532,8 +2526,9 @@ if context.buildAnimXTests:
 # Building zlib is the default when a dependency requires it, although OpenUSD
 # itself does not require it. The --no-zlib flag can be passed to the build
 # script to allow the dependency to find zlib in the build environment.
-if (Linux() or MacOS() or context.targetWasm or not context.buildZlib) and ZLIB in requiredDependencies:
-    requiredDependencies = [r for r in requiredDependencies if r != ZLIB]
+if ZLIB in requiredDependencies:
+    if Linux() or MacOS() or context.targetWasm or not context.buildZlib:
+        requiredDependencies = [r for r in requiredDependencies if r != ZLIB]
 
 # Error out if user is building monolithic library on windows with draco plugin
 # enabled. This currently results in missing symbols.
@@ -2555,7 +2550,7 @@ if context.enableVulkan and not 'VULKAN_SDK' in os.environ:
                "variable is not set")
     sys.exit(1)
 
-# Wasm build explicitly requires OneTBB which is compatable with emscripten.
+# Wasm build explicitly requires OneTBB which is compatible with emscripten.
 # The command option which explicitly disables oneTBB should not be specified.
 if context.targetWasm and not context.buildOneTBB:
     PrintError("Wasm builds require oneTBB. Ensure that --no-onetbb is not specified")
@@ -2655,6 +2650,19 @@ if which("cmake"):
 else:
     PrintError("CMake not found -- please install it and adjust your PATH")
     sys.exit(1)
+
+# When building emscripten on Windows, if no generator is specified we will 
+# default to Ninja due to the fact that the default Visual Studio build 
+# system does not build emscripten projects. Ninja, being cross platform, is
+# a good default as it is open source cross platform tool that is simple 
+# to setup.
+if context.targetWasm and Windows() and not context.cmakeGenerator:
+    if which("ninja"):
+        context.cmakeGenerator = 'Ninja'
+    else:
+        PrintError("Default generator ninja not found -- please install "
+                   "it or another compatible generator and adjust your PATH")
+        sys.exit(1)
 
 if context.buildDocs:
     if not which("doxygen"):

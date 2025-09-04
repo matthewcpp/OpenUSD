@@ -92,7 +92,7 @@ def _parseArgs():
             default=None)
     parser.add_argument('--test-runner', type=str,
             help=('Application that will run the test. '
-                  'Currently used for emscrpipten builds.'))
+                  'Currently used for emscripten builds.'))
     parser.add_argument('--expected-return-code', type=int, default=0,
             help='Expected return code of this test.')
     parser.add_argument('--env-var', dest='envVars', default=[], type=str, 

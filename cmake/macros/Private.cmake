@@ -819,22 +819,8 @@ endfunction()
 #      always want those.
 #
 function(_pxr_target_link_libraries NAME)
-    set(options
-        IS_STATIC_PLUGIN
-    )
-    set(oneValueArgs
-    )
-    set(multiValueArgs
-    )
-    cmake_parse_arguments(args
-        "${options}"
-        "${oneValueArgs}"
-        "${multiValueArgs}"
-        ${ARGN}
-    )
-
     # Split core libraries from non-core libraries.
-    _pxr_split_libraries("${args_UNPARSED_ARGUMENTS}" internal external)
+    _pxr_split_libraries("${ARGN}" internal external)
 
     get_property(type TARGET ${NAME} PROPERTY TYPE)
     if("${type}" STREQUAL "OBJECT_LIBRARY")
@@ -1459,11 +1445,7 @@ function(_pxr_library NAME)
     endif()
 
     # XXX -- May want some plugins to be baked into monolithic.
-    set(ADDITIONAL_ARGS )
-    if(EMSCRIPTEN)
-        list(APPEND ADDITIONAL_ARGS IS_STATIC_PLUGIN)
-    endif()
-    _pxr_target_link_libraries(${NAME} ${ADDITIONAL_ARGS} ${args_LIBRARIES})
+    _pxr_target_link_libraries(${NAME} ${args_LIBRARIES})
 
     # Rpath has libraries under the third party prefix and the install prefix.
     # The former is for helper libraries for a third party application and

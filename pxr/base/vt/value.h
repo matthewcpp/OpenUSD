@@ -153,6 +153,8 @@ class VtValue
     static const unsigned int _LocalFlag       = 1 << 0;
     static const unsigned int _TrivialCopyFlag = 1 << 1;
     static const unsigned int _ProxyFlag       = 1 << 2;
+    static const unsigned int _AllFlags = 
+        _LocalFlag | _TrivialCopyFlag | _ProxyFlag;
 
     template <class T>
     struct _Counted {
@@ -201,17 +203,10 @@ class VtValue
         std::is_nothrow_move_constructible<T>::value &&
         std::is_nothrow_move_assignable<T>::value>;
 
-    #if defined(ARCH_OS_WASM_VM)
-    // for 32bit wasm we want to ensure that this structure is
-    // aligned to 8 bytes so that we have enough room to store
-    // all TypeInfo related flags of which there are three.
-    #define VT_VALUE_TYPEINFO_ALIGN alignas(8)
-    #else
-    #define VT_VALUE_TYPEINFO_ALIGN 
-    #endif
-
     // Type information base class.
-    struct VT_VALUE_TYPEINFO_ALIGN _TypeInfo {
+    // We force alignment here in order to ensure that TfPointerAndBits has
+    // enough room to store all TypeInfo related flags.
+    struct alignas(8) _TypeInfo {
     private:
         using _CopyInitFunc = void (*)(_Storage const &, _Storage &);
         using _DestroyFunc = void (*)(_Storage &);
@@ -842,8 +837,8 @@ class VtValue
         using StoredType = typename Vt_ValueGetStored<T>::Type;
         using TypeInfo = _TypeInfoFor<StoredType>;
 
-        static_assert(TfPointerAndBits<const _TypeInfo>::GetMaxValue() >= 
-            (_LocalFlag | _TrivialCopyFlag | _ProxyFlag));
+        static_assert(
+            TfPointerAndBits<const _TypeInfo>::GetMaxValue() >= _AllFlags);
 
         static TfPointerAndBits<const _TypeInfo> _GetTypeInfo() {
             static const TypeInfo ti;
