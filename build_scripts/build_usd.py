@@ -2229,7 +2229,7 @@ subgroup.add_argument("--no-materialx", dest="build_materialx", action="store_fa
 group = parser.add_argument_group(title="TBB Options")
 subgroup = group.add_mutually_exclusive_group()
 subgroup.add_argument("--onetbb", dest="build_onetbb", action="store_true",
-                      default=None,
+                      default=False,
                       help="Build using oneTBB instead of TBB")
 subgroup.add_argument("--no-onetbb", dest="build_onetbb", action="store_false",
                       help="Build using TBB (default)")
@@ -2430,10 +2430,7 @@ class InstallContext:
 
         # - TBB
         # Note: wasm build requires requires building oneTBB
-        # In this case, if the option is not explicitly passed on the command
-        # line we want to default to a reasonable value.
-        self.buildOneTBB = args.build_onetbb \
-            if args.build_onetbb is not None else self.targetWasm
+        self.buildOneTBB = args.build_onetbb or self.targetWasm
 
         # - Spline Tests
         self.buildMayapyTests = args.build_mayapy_tests
@@ -2473,25 +2470,6 @@ if extraPaths:
 if extraPythonPaths:
     paths = os.environ.get('PYTHONPATH', '').split(os.pathsep) + extraPythonPaths
     os.environ['PYTHONPATH'] = os.pathsep.join(paths)
-
-# Disable incompatible options if target is wasm
-if context.targetWasm:
-    components = [
-        ('buildPython', 'Python'),
-        ('buildTools', 'tools'),
-        ('buildExamples', 'examples'),
-        ('buildTutorials', 'tutorials'),
-        ('buildUsdview', 'usdview'),
-        ('buildMaterialX', 'materialX'),
-        ('buildImaging', 'Imaging'),
-        ('buildUsdImaging', 'UsdImaging'),
-        ('buildUsdValidation', 'UsdValidation')
-    ]
-
-    for attr, name in components:
-        if getattr(context, attr):
-            setattr(context, attr, False)
-
 
 # Determine list of dependencies that are required based on options
 # user has selected.
@@ -2562,11 +2540,31 @@ if context.enableVulkan and not 'VULKAN_SDK' in os.environ:
                "variable is not set")
     sys.exit(1)
 
-# Wasm build explicitly requires OneTBB which is compatible with emscripten.
-# The command option which explicitly disables oneTBB should not be specified.
-if context.targetWasm and not context.buildOneTBB:
-    PrintError("Wasm builds require oneTBB. Ensure that --no-onetbb is not specified")
-    sys.exit(1)
+if context.targetWasm:
+    if "--no-onetbb" in sys.argv:
+        PrintError("Wasm target requires oneTBB")
+        sys.exit(1)
+    if "--python" in sys.argv:
+        PrintError("Cannot build python components for wasm build targets")
+        sys.exit(1)
+    if "--examples" in sys.argv:
+        PrintError("Cannot build examples for wasm build targets")
+        sys.exit(1)
+    if "--tutorials" in sys.argv:
+        PrintError("Cannot build tutorials for wasm build targets")
+        sys.exit(1)
+    if "--tools" in sys.argv:
+        PrintError("Cannot build tools for wasm build targets")
+        sys.exit(1)
+    if "--materialx" in sys.argv:
+        PrintError("Cannot build materialx for wasm build targets")
+        sys.exit(1)
+    if "--usd-imaging" in sys.argv:
+        PrintError("Cannot build Usd Imaging for wasm build targets")
+        sys.exit(1)
+    if "--usdValidation" in sys.argv:
+        PrintError("Cannot build Usd Validation for wasm build targets")
+        sys.exit(1)
 
 # Error out if user explicitly enabled components which aren't
 # supported for embedded build targets.
