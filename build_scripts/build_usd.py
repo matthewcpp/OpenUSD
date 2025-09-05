@@ -2359,12 +2359,22 @@ class InstallContext:
         embedded = MacOSTargetEmbedded(self)
 
         # Optional components
-        self.buildTests = args.build_tests and not embedded
-        self.buildPython = args.build_python and not embedded
-        self.buildExamples = args.build_examples and not embedded
-        self.buildTutorials = args.build_tutorials and not embedded
-        self.buildTools = args.build_tools and not embedded
-        self.buildUsdValidation = args.build_usd_validation and not embedded
+        self.buildTests = (args.build_tests and not embedded)
+        self.buildPython = (args.build_python and 
+                            not embedded and 
+                            not self.targetWasm)
+        self.buildExamples = (args.build_examples and 
+                              not embedded and 
+                              not self.targetWasm)
+        self.buildTutorials = (args.build_tutorials and 
+                               not embedded and 
+                               not self.targetWasm)
+        self.buildTools = (args.build_tools and 
+                           not embedded and 
+                           not self.targetWasm)
+        self.buildUsdValidation = (args.build_usd_validation and 
+                                   not embedded and 
+                                   not self.targetWasm)
 
         # - Documentation
         self.buildDocs = args.build_docs or args.build_python_docs
@@ -2373,7 +2383,8 @@ class InstallContext:
 
         # - Imaging
         self.buildImaging = (args.build_imaging == IMAGING or
-                             args.build_imaging == USD_IMAGING)
+                             args.build_imaging == USD_IMAGING
+                             and not self.targetWasm)
         self.enablePtex = self.buildImaging and args.enable_ptex
         self.enableOpenVDB = (self.buildImaging
                               and args.enable_openvdb
@@ -2383,7 +2394,8 @@ class InstallContext:
                               and not embedded)
 
         # - USD Imaging
-        self.buildUsdImaging = (args.build_imaging == USD_IMAGING)
+        self.buildUsdImaging = (args.build_imaging == USD_IMAGING and 
+                                not self.targetWasm)
 
         # - usdview
         self.buildUsdview = (self.buildUsdImaging and 
@@ -2414,7 +2426,7 @@ class InstallContext:
                                 if args.draco_location else None)
 
         # - MaterialX
-        self.buildMaterialX = args.build_materialx
+        self.buildMaterialX = args.build_materialx and not self.targetWasm
 
         # - TBB
         # Note: wasm build requires requires building oneTBB
