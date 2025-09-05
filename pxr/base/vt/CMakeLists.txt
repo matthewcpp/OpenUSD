@@ -79,6 +79,7 @@ pxr_test_scripts(
     testenv/testVtArrayEdit.py
     testenv/testVtValue.py
 )
+
 pxr_register_test(testVtValue
     PYTHON
     COMMAND "${CMAKE_INSTALL_PREFIX}/tests/testVtValue"

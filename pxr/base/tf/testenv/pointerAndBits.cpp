@@ -25,8 +25,8 @@ Test_TfPointerAndBits()
     {
         // short and bits (we expect at least one bit available).
         TfPointerAndBits<short> pbs;
-        TF_AXIOM(pbs.GetMaxValue() > 0);
-        TF_AXIOM(pbs.GetNumBitsValues() > 1);
+        TF_AXIOM(TfPointerAndBits<short>::GetMaxValue() > 0);
+        TF_AXIOM(TfPointerAndBits<short>::GetNumBitsValues() > 1);
 
         short data(1234);
         pbs = &data;
