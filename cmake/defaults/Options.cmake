@@ -12,7 +12,6 @@ option(PXR_BUILD_EXAMPLES "Build examples" ON)
 option(PXR_BUILD_TUTORIALS "Build tutorials" ON)
 option(PXR_BUILD_USD_TOOLS "Build commandline tools" ON)
 option(PXR_BUILD_IMAGING "Build imaging components" ON)
-option(PXR_BUILD_PERFORMANCE_METRICS "Build USD performance metrics components" ON)
 option(PXR_BUILD_EMBREE_PLUGIN "Build embree imaging plugin" OFF)
 option(PXR_BUILD_OPENIMAGEIO_PLUGIN "Build OpenImageIO plugin" OFF)
 if(APPLE)
@@ -256,13 +255,6 @@ if (EMSCRIPTEN)
     if (${PXR_BUILD_EXEC})
         MESSAGE(STATUS "Setting PXR_BUILD_EXEC=OFF because it is not supported on Wasm")
         set(PXR_BUILD_EXEC "OFF")
-    endif()
-
-    if (${PXR_BUILD_PERFORMANCE_METRICS})
-        MESSAGE(STATUS 
-            "Setting PXR_BUILD_PERFORMANCE_METRICS=OFF because the script is not "
-            "compatible with Wasm builds")
-        set(PXR_BUILD_PERFORMANCE_METRICS "OFF")
     endif()
 
     if (${BUILD_SHARED_LIBS})

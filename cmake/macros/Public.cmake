@@ -453,7 +453,7 @@ endmacro(pxr_static_library)
 
 macro(pxr_plugin NAME)
     if(EMSCRIPTEN)
-        # Not ideal but dynamic linking is not supported yet in the usd build toolchain
+        # Dynamic linking is not supported yet in the usd build toolchain
         message(STATUS "Building ${NAME} plugin as static library for emscripten support")
         pxr_library(${NAME} TYPE "STATIC" ${ARGN})
     else()
@@ -492,7 +492,7 @@ function (pxr_create_test_module MODULE_NAME)
         return()
     endif()
 
-    if (NOT PXR_BUILD_TESTS)
+    if (NOT PXR_BUILD_TESTS) 
         return()
     endif()
 
@@ -810,9 +810,10 @@ function(pxr_register_test TEST_NAME)
     # e.g. by changing the environment, changing the expected return code, etc.
     set(testWrapperCmd ${PROJECT_SOURCE_DIR}/cmake/macros/testWrapper.py --verbose)
 
-    # For Emscripten we want to explicitly run the test with node.  The tests themselves
-    # are javascript files which contain a shebang, however if we are trying to run them
-    # on windows this will result in errors when trying to spawn the test process.
+    # For Emscripten we want to explicitly run the test with node.  The tests
+    # themselves are javascript files which contain a shebang, however if we are
+    # trying to run them on windows this will result in errors when trying to
+    # spawn the test process.
     if (EMSCRIPTEN)
         set(testWrapperCmd ${testWrapperCmd} --test-runner node)
     endif()

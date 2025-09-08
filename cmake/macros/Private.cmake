@@ -1384,7 +1384,6 @@ function(_pxr_library NAME)
             IMPORT_PREFIX "${args_PREFIX}"            
             PREFIX "${args_PREFIX}"
             SUFFIX "${args_SUFFIX}"
-            OUTPUT_NAME ${NAME}
     )
 
     target_compile_definitions(${NAME}
