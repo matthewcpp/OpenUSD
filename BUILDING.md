@@ -425,7 +425,6 @@ The additional dependencies that must be supplied when invoking cmake are:
 | ------------------ |----------------------------------------  |
 | PMC_ROOT           | The root path to a PMC SDK install.     |
 
-
 ## Tests
 
 Tests are built by default but can be disabled by specifying the cmake flag 

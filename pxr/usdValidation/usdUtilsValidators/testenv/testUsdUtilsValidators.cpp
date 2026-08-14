@@ -19,6 +19,8 @@
 #include <array>
 #include <filesystem>
 
+#include <fstream>
+
 PXR_NAMESPACE_USING_DIRECTIVE
 
 TF_DEFINE_PRIVATE_TOKENS(_tokens,
@@ -166,6 +168,23 @@ TestFileExtensionValidator()
 
     // Verify no errors occur with all valid extensions included
     TF_AXIOM(errors.empty());
+
+    // Test that files requiring optional plugins produce a warning
+    const UsdStageRefPtr& pmcStage = UsdStage::Open("pmcwarning.usdz");
+    errors = validator->Validate(pmcStage);
+    TF_AXIOM(errors.size() == 1u);
+
+    const std::string expectedWarningMsg =
+        "This package contains a file with the 'pmc' extension. The UsdPmc "
+        "plugin is required in order to read files of this type. This plugin "
+        "is not part of the default USD build and therefore a client may "
+        "not be able to read it.";
+
+    const TfToken expectedWarningIdentifier(
+        "usdUtilsValidators:FileExtensionValidator.ContainsPmcFile");
+
+    ValidateError(errors[0], expectedWarningMsg, expectedWarningIdentifier, 
+        UsdValidationErrorType::Warn);
 }
 
 static void

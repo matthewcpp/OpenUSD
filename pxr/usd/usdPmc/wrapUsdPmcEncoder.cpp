@@ -1,11 +1,11 @@
 //
-// Copyright 2025 Apple
+// Copyright 2026 Apple
 //
 // Licensed under the terms set forth in the LICENSE.txt file available at
 // https://openusd.org/license.
 //
 
-#include "usdPmcEncoder.hpp"
+#include "usdPmcEncoder.h"
 
 #include "pxr/pxr.h"
 #include "pxr/external/boost/python/class.hpp"

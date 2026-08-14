@@ -1,5 +1,5 @@
 //
-// Copyright 2025 Apple
+// Copyright 2026 Apple
 //
 // Licensed under the terms set forth in the LICENSE.txt file available at
 // https://openusd.org/license.
@@ -17,8 +17,8 @@
 /// - Provides read-only access to PMC compressed mesh data
 /// - Automatically decompresses PMC data into USD mesh primitives
 
-#include "usdPmcFileFormat.hpp"
-#include "usdPmcDecoder.hpp"
+#include "usdPmcFileFormat.h"
+#include "usdPmcDecoder.h"
 
 #include "pxr/pxr.h"
 #include "pxr/base/tf/pathUtils.h"

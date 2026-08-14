@@ -1,5 +1,5 @@
 //
-// Copyright 2025 Apple
+// Copyright 2026 Apple
 //
 // Licensed under the terms set forth in the LICENSE.txt file available at
 // https://openusd.org/license.
@@ -19,8 +19,8 @@
 /// - Temporary file management for USDZ processing
 /// - Automatic removal of compressed attributes from source meshes
 
-#include "usdPmcEncoder.hpp"
-#include "usdPmcEncodeSession.hpp"
+#include "usdPmcEncoder.h"
+#include "usdPmcEncodeSession.h"
 
 #include "pxr/pxr.h"
 #include "pxr/base/vt/dictionary.h"

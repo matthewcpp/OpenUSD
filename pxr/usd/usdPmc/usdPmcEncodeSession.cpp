@@ -1,5 +1,5 @@
 //
-// Copyright 2025 Apple
+// Copyright 2026 Apple
 //
 // Licensed under the terms set forth in the LICENSE.txt file available at
 // https://openusd.org/license.
@@ -21,9 +21,9 @@
 /// - Applies quantization and scaling for optimal compression
 /// - Generates JSON metadata for proper reconstruction during decoding
 
-#include "usdPmcEncodeSession.hpp"
-#include "usdPmcConstantPrivate.hpp"
-#include "usdPmcEncoder.hpp"
+#include "usdPmcEncodeSession.h"
+#include "usdPmcConstantPrivate.h"
+#include "usdPmcEncoder.h"
 
 #include "pxr/pxr.h"
 #include "pxr/base/vt/dictionary.h"
@@ -415,9 +415,15 @@ GetMeshFaceTypeFromFaceVertexCounts(const VtArray<int> fvcs)
     const int max = *minmax.second;
 
     using MFT = pmc::MeshFaceType;
-    if (max == min && min == 3) return MFT::TRIANGULAR;
-    if (max == min && min == 4) return MFT::QUADRILATERAL;
-    if (max == 4 && min == 3)   return MFT::TRIANGULAR_QUADRILATERAL;
+    if (max == min && min == 3) {
+        return MFT::TRIANGULAR;
+    }
+    if (max == min && min == 4) {
+        return MFT::QUADRILATERAL;
+    }
+    if (max == 4 && min == 3) {
+        return MFT::TRIANGULAR_QUADRILATERAL;
+    }
     return MFT::POLYGONAL;
 }
 
@@ -425,10 +431,18 @@ pmc::AttributeScope
 GetScopeFromUsd(pxr::TfToken interp)
 {
     using AS = pmc::AttributeScope;
-    if (interp == pxr::UsdGeomTokens->vertex)       return AS::VERTEX;
-    if (interp == pxr::UsdGeomTokens->varying)      return AS::VERTEX;
-    if (interp == pxr::UsdGeomTokens->faceVarying)  return AS::CORNER;
-    if (interp == pxr::UsdGeomTokens->uniform)      return AS::FACE;
+    if (interp == pxr::UsdGeomTokens->vertex) {
+        return AS::VERTEX;
+    }
+    if (interp == pxr::UsdGeomTokens->varying) {
+        return AS::VERTEX;
+    }
+    if (interp == pxr::UsdGeomTokens->faceVarying) {
+        return AS::CORNER;
+    }
+    if (interp == pxr::UsdGeomTokens->uniform) {
+        return AS::FACE;
+    }
 
     throw std::runtime_error(
         std::string("cannot convert interpolation type ") + interp.GetString());
@@ -439,20 +453,33 @@ pmc::AttributeType
 GuessAttributeType(const TfToken pvRole, const TfToken pvName)
 {
     using AT = pmc::AttributeType;
-    if (pvRole == pxr::SdfValueRoleNames->Color)              return AT::COLOR;
-    if (pvRole == pxr::SdfValueRoleNames->Normal)             return AT::NORMAL;
-    if (pvRole == pxr::SdfValueRoleNames->TextureCoordinate)  return AT::TEX_COORD;
+    if (pvRole == pxr::SdfValueRoleNames->Color) {
+        return AT::COLOR;
+    }
+    if (pvRole == pxr::SdfValueRoleNames->Normal) {
+        return AT::NORMAL;
+    }
+    if (pvRole == pxr::SdfValueRoleNames->TextureCoordinate) {
+        return AT::TEX_COORD;
+    }
 
-    if (pvName == "uv" || pvName == "UV" || pvName == "st")   return AT::TEX_COORD;
-    if (pvName == pxr::UsdGeomTokens->normals)                return AT::NORMAL;
-    if (pvName == "displayColor")                             return AT::COLOR;
+    if (pvName == "uv" || pvName == "UV" || pvName == "st") {
+        return AT::TEX_COORD;
+    }
+    if (pvName == pxr::UsdGeomTokens->normals) {
+        return AT::NORMAL;
+    }
+    if (pvName == "displayColor") {
+        return AT::COLOR;
+    }
 
     // If pvName ends with "_uv"
     constexpr std::string_view suff {"_uv"};
     std::string_view ps = pvName.GetString();
     if (ps.length() >= suff.length() &&
-        ps.compare(ps.length() - suff.length(), suff.length(), suff) == 0)
+        ps.compare(ps.length() - suff.length(), suff.length(), suff) == 0) {
         return AT::TEX_COORD;
+    }
 
     return AT::USER_DEFINED_START;
 }

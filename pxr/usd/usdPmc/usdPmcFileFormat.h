@@ -1,11 +1,11 @@
 //
-// Copyright 2025 Apple
+// Copyright 2026 Apple
 //
 // Licensed under the terms set forth in the LICENSE.txt file available at
 // https://openusd.org/license.
 //
 
-/// \file usdPmc/usdPmcFileFormat.hpp
+/// \file usdPmc/usdPmcFileFormat.h
 
 #ifndef USD_PMC_FILE_FORMAT_H
 #define USD_PMC_FILE_FORMAT_H

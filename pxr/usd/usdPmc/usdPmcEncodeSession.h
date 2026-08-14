@@ -1,11 +1,11 @@
 //
-// Copyright 2025 Apple
+// Copyright 2026 Apple
 //
 // Licensed under the terms set forth in the LICENSE.txt file available at
 // https://openusd.org/license.
 //
 
-/// \file usdPmc/usdPmcEncodeSession.hpp
+/// \file usdPmc/usdPmcEncodeSession.h
 
 #ifndef USD_PMC_ENCODE_SESSION_H
 #define USD_PMC_ENCODE_SESSION_H
@@ -14,6 +14,7 @@
 #include "pxr/usd/usdGeom/mesh.h"
 #include <pmc/pmEncoder.hpp>
 
+#include <set>
 #include <string>
 #include <vector>
 

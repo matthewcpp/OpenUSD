@@ -32,7 +32,7 @@ pxr_library(usdPmc
 
     PUBLIC_HEADERS
         api.h
-        usdPmcEncoder.hpp
+        usdPmcEncoder.h
 )
 
 pxr_test_scripts(

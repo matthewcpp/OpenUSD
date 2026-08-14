@@ -11,7 +11,7 @@
 #include "pxr/base/tf/pathUtils.h"
 #include "pxr/base/tf/pxrCLI11/CLI11.h"
 #include "pxr/base/tf/stringUtils.h"
-#include "pxr/usd/usdPmc/usdPmcEncoder.hpp"
+#include "pxr/usd/usdPmc/usdPmcEncoder.h"
 
 #include <iomanip>
 #include <iostream>

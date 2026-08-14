@@ -1,5 +1,5 @@
 //
-// Copyright 2025 Apple
+// Copyright 2026 Apple
 //
 // Licensed under the terms set forth in the LICENSE.txt file available at
 // https://openusd.org/license.
@@ -84,24 +84,6 @@ private:
     pmc::Decoder _dec;
     uint32_t _unnamedAttributeCount;
 };
-
-/// Convert USD buffer to PMC ArrayBuffer format.
-/// \param usdBuffer The USD buffer to convert
-/// \param cpv Components per vector
-/// \param dt PMC data type
-/// \return PMC ArrayBuffer structure
-template<typename T>
-inline pmc::ArrayBuffer
-UsdPmc_ToPmcBuffer(T& usdBuffer, int cpv, pmc::DataType dt) {
-    pmc::ArrayBuffer buf;
-    buf.data = (uint8_t*)usdBuffer.data();
-    buf.offset = 0;
-    buf.stride = sizeof(int) * cpv;
-    buf.vectorCount = usdBuffer.size() / cpv;
-    buf.componentsPerVector = cpv;
-    buf.dataType = dt;
-    return buf;
-}
 
 PXR_NAMESPACE_CLOSE_SCOPE
 
