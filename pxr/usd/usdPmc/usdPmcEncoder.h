@@ -40,14 +40,14 @@ public:
     bool CanEncode(const UsdGeomMesh& mesh);
 
     /// Encode a UsdGeomMesh into PMC compressed format.
-    /// \param mesh The UsdGeomMesh to encode
+    /// \param mesh Pointer to the UsdGeomMesh to encode
     /// \param options Encoding options and parameters
     /// \param processedAttributes Pointer to set to store names of processed attributes
     /// \param processedSubSets Pointer to set to store names of processed subsets
     /// \param resultInfo Pointer to dictionary to store encoding result information
     /// \return Encoded PMC data as a byte vector
     USDPMC_API
-    std::vector<uint8_t> Encode(UsdGeomMesh& mesh,
+    std::vector<uint8_t> Encode(UsdGeomMesh* mesh,
                                 const VtDictionary& options,
                                 std::set<std::string>* processedAttributes,
                                 std::set<std::string>* processedSubSets,
@@ -75,7 +75,7 @@ private:
 
     /// Process and compress a single mesh, writing PMC data and updating
     /// references
-    bool _ProcessMesh(UsdGeomMesh& mesh, const VtDictionary& options,
+    bool _ProcessMesh(UsdGeomMesh* mesh, const VtDictionary& options,
                       const uint32_t meshCounter,
                       std::set<std::string>* processedAttributes,
                       std::set<std::string>* processedSubSets,
@@ -83,7 +83,7 @@ private:
 
     /// Remove processed attributes and subsets from the original mesh after
     /// compression
-    bool _RemoveAttributes(UsdGeomMesh& mesh,
+    bool _RemoveAttributes(UsdGeomMesh* mesh,
                            std::set<std::string>* processedAttributes,
                            std::set<std::string>* processedSubSets);
 

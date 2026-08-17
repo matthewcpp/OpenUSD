@@ -75,9 +75,14 @@ static int UsdCrush(const Args &args) {
 int
 main(int argc, char const *argv[]) {
     CLI::App app(
-        "Reduce the size of the source USD", "usdcrush");
+        "Reduce the size of the source USD file by applying PMC "
+        "compression to meshes.", "usdcrush");
 
     Args args;
+
+    // In the future, other optimizations are possible, and should be
+    // configured via options. When another option is introduced, "meshes" 
+    // should become one of the options so that it can be invoked, or not.
     Configure(&app, args);
     CLI11_PARSE(app, argc, argv);
 

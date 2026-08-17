@@ -119,13 +119,16 @@ UsdPmcMeshEncoder::CanEncode(const UsdGeomMesh& mesh) {
 }
 
 std::vector<uint8_t>
-UsdPmcMeshEncoder::Encode(UsdGeomMesh& mesh, const VtDictionary& options,
+UsdPmcMeshEncoder::Encode(UsdGeomMesh* mesh, const VtDictionary& options,
                           std::set<std::string>* processedAttributes,
                           std::set<std::string>* processedSubSets,
                           VtDictionary* resultInfo) {
     std::vector<uint8_t> bs;
+    if (!mesh) {
+        return bs;
+    }
     try {
-        PmcEncodeSession pmces = PmcEncodeSession{UsdGeomMesh(mesh), options};
+        PmcEncodeSession pmces = PmcEncodeSession{UsdGeomMesh(*mesh), options};
         bs = pmces.encode();
         // resultInfo is currently unused but could be populated in the future
         if (processedAttributes)
@@ -249,16 +252,16 @@ UsdPmcMeshEncoder::_PackUSDZ() {
 }
 
 bool
-UsdPmcMeshEncoder::_ProcessMesh(UsdGeomMesh& mesh,
+UsdPmcMeshEncoder::_ProcessMesh(UsdGeomMesh* mesh,
                                 const VtDictionary& options,
                                 const uint32_t meshCounter,
                                 std::set<std::string>* processedAttributes,
                                 std::set<std::string>* processedSubSets,
                                 VtDictionary* resultInfo) {
-   if (!mesh) {
+   if (!mesh || !(*mesh)) {
        return false;
    }
-    UsdPrim prim = mesh.GetPrim();
+    UsdPrim prim = mesh->GetPrim();
     // Encode the mesh to PMC format
     std::vector<uint8_t> bs = Encode(mesh, options, processedAttributes,
                                      processedSubSets, resultInfo);
@@ -280,7 +283,7 @@ UsdPmcMeshEncoder::_ProcessMesh(UsdGeomMesh& mesh,
                           bs.size());
             outfile.close();
             // Add reference to the compressed mesh file
-            auto references = mesh.GetPrim().GetReferences();
+            auto references = mesh->GetPrim().GetReferences();
             if (!references) {
                 TF_RUNTIME_ERROR(
                     "Error: Unable to add compressed mesh reference: " +
@@ -303,10 +306,10 @@ UsdPmcMeshEncoder::_ProcessMesh(UsdGeomMesh& mesh,
 
 bool
 UsdPmcMeshEncoder::_RemoveAttributes(
-    UsdGeomMesh& mesh,
+    UsdGeomMesh* mesh,
     std::set<std::string>* processedAttributes,
     std::set<std::string>* processedSubSets) {
-    if (!mesh) {
+    if (!mesh || !(*mesh)) {
         return false;
     }
 
@@ -314,9 +317,9 @@ UsdPmcMeshEncoder::_RemoveAttributes(
     if (processedAttributes) {
         for (auto attr: *processedAttributes) {
 
-            if (mesh.GetPrim().HasProperty(TfToken(attr))) {
-                mesh.GetPrim().GetAttribute(TfToken(attr)).Clear();
-                mesh.GetPrim().GetAttribute(TfToken(attr))
+            if (mesh->GetPrim().HasProperty(TfToken(attr))) {
+                mesh->GetPrim().GetAttribute(TfToken(attr)).Clear();
+                mesh->GetPrim().GetAttribute(TfToken(attr))
                     .ClearMetadata(UsdGeomTokens->elementSize);
             } else {
                 // Handle primvar attributes with namespaces
@@ -325,10 +328,10 @@ UsdPmcMeshEncoder::_RemoveAttributes(
                 if (pos != std::string::npos) {
                     attrVarType.erase(pos);
                     if (attrVarType != "primvars") {
-                        if (mesh.GetPrim().HasProperty(TfToken(attrVarType))) {
-                            mesh.GetPrim().GetAttribute(TfToken(attrVarType))
+                        if (mesh->GetPrim().HasProperty(TfToken(attrVarType))) {
+                            mesh->GetPrim().GetAttribute(TfToken(attrVarType))
                                 .Clear();
-                            mesh.GetPrim().GetAttribute(TfToken(attrVarType))
+                            mesh->GetPrim().GetAttribute(TfToken(attrVarType))
                                 .ClearMetadata(UsdGeomTokens->elementSize);
                         }
                     }
@@ -339,7 +342,7 @@ UsdPmcMeshEncoder::_RemoveAttributes(
 
     // Remove indices from processed geometry subsets
     if (processedSubSets) {
-        for (auto submesh: UsdGeomSubset::GetAllGeomSubsets(mesh)) {
+        for (auto submesh: UsdGeomSubset::GetAllGeomSubsets(*mesh)) {
             if (std::find(processedSubSets->begin(), processedSubSets->end(),
                           submesh.GetPrim().GetName()) != processedSubSets->end()) {
                 submesh.GetPrim().RemoveProperty(TfToken("indices"));
@@ -411,10 +414,10 @@ bool UsdPmcMeshEncoder::EncodeStage(std::filesystem::path inFile,
             std::set<std::string> processedSubSets;
             VtDictionary meshResults;
 
-            if (_ProcessMesh(currentMesh, options, meshCounter,
+            if (_ProcessMesh(&currentMesh, options, meshCounter,
                              &processedAttributes, &processedSubSets,
                              &meshResults)) {
-                _RemoveAttributes(currentMesh, &processedAttributes,
+                _RemoveAttributes(&currentMesh, &processedAttributes,
                                   &processedSubSets);
                 meshCounter++;
             }

@@ -64,9 +64,9 @@ using CoordSys = PmcEncodeSession::CoordSys;
 /// Template utility for validating expected values during PMC encoding
 /// operations.
 template<typename T>
-struct Expect {
+struct _Expect {
     const T expected;
-    constexpr Expect(T expected) : expected(expected) {}
+    constexpr _Expect(T expected) : expected(expected) {}
 
     /// Check that x matches expected value; throws std::runtime_error if not.
     const T& operator=(const T& x) const;
@@ -74,7 +74,7 @@ struct Expect {
 
 template<typename T>
 const T&
-Expect<T>::operator=(const T& x) const
+_Expect<T>::operator=(const T& x) const
 {
     if (x != expected) {
         auto xi = std::underlying_type_t<T>(x);
@@ -1018,7 +1018,7 @@ PmcEncodeSession::_setupAttrs()
 void
 PmcEncodeSession::_configurePmc()
 {
-    constexpr Expect throwOnError {pmc::Error::OK};
+    constexpr _Expect throwOnError {pmc::Error::OK};
 
     // Configure geometry meshpart
     throwOnError = _enc.configure(_gmp.info);
@@ -1066,7 +1066,7 @@ PmcEncodeSession::_encode()
     for (auto& amp : _amps)
         _gmp.attMeshparts.push_back(&amp);
 
-    constexpr Expect throwOnError {pmc::Error::OK};
+    constexpr _Expect throwOnError {pmc::Error::OK};
     throwOnError = _enc.encode(_gmp, dstBuf, geomOpts);
 
     // Encode all attribute meshparts
