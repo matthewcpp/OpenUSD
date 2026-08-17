@@ -31,6 +31,7 @@
 #include "pxr/base/gf/traits.h"
 #include "pxr/base/gf/vec3f.h"
 #include "pxr/base/vt/types.h"
+#include "pxr/base/vt/visitValue.h"
 #include "pxr/usd/sdf/types.h"
 #include "pxr/usd/usdGeom/primvarsAPI.h"
 #include "pxr/usd/usdGeom/subset.h"
@@ -38,6 +39,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <optional>
 #include <string>
 #include <iostream>
 #include <vector>
@@ -98,38 +100,44 @@ template<typename T, typename Enable = void>
 constexpr size_t oneextent_v = std::max(size_t(1), std::extent_v<T>);
 
 template<typename T>
-constexpr size_t oneextent_v<T, typename std::enable_if_t<GfIsGfVec<T>::value>> = T::dimension;
+constexpr size_t oneextent_v<T, 
+typename std::enable_if_t<GfIsGfVec<T>::value>> = T::dimension;
 
-/// Analyzes the VtValue type to determine how many components each element has.
+/// Catches non-array and unknown/empty values.
+template <class T>
+struct _GetExtent {
+    static int Visit() {
+        throw std::runtime_error("unknown extent for type");
+    }
+};
+
+/// Returns dimension for arrays of supported data types.
+/// Unsupported vector element types will trigger the runtime exception.
+template <class T>
+struct _GetExtent<VtArray<T>> {
+    static int Visit() {
+        if constexpr (GfIsGfVec<T>::value ||
+                      std::is_same_v<T, bool> ||
+                      std::is_same_v<T, int> ||
+                      std::is_same_v<T, float> ||
+                      std::is_same_v<T, double> ||
+                      std::is_same_v<T, GfHalf>) {
+            return int(oneextent_v<T>);
+        } else {
+            throw std::runtime_error("unknown extent for type");
+        }
+    }
+};
+
+/// Analyzes the VtValue type to determine how many components each 
+// element has.
 int
 GetExtentFromType(const VtValue& vtv)
 {
     if (vtv.IsEmpty())
         return 0;
 
-    switch (vtv.GetKnownValueTypeIndex()) {
-        case VtGetKnownValueTypeIndex<VtArray<GfVec2i>>(): return 2;
-        case VtGetKnownValueTypeIndex<VtArray<GfVec2f>>(): return 2;
-        case VtGetKnownValueTypeIndex<VtArray<GfVec2h>>(): return 2;
-        case VtGetKnownValueTypeIndex<VtArray<GfVec2d>>(): return 2;
-        case VtGetKnownValueTypeIndex<VtArray<GfVec3i>>(): return 3;
-        case VtGetKnownValueTypeIndex<VtArray<GfVec3f>>(): return 3;
-        case VtGetKnownValueTypeIndex<VtArray<GfVec3h>>(): return 3;
-        case VtGetKnownValueTypeIndex<VtArray<GfVec3d>>(): return 3;
-        case VtGetKnownValueTypeIndex<VtArray<GfVec4i>>(): return 4;
-        case VtGetKnownValueTypeIndex<VtArray<GfVec4f>>(): return 4;
-        case VtGetKnownValueTypeIndex<VtArray<GfVec4h>>(): return 4;
-        case VtGetKnownValueTypeIndex<VtArray<GfVec4d>>(): return 4;
-
-        case VtGetKnownValueTypeIndex<VtArray<bool>>(): return 1;
-        case VtGetKnownValueTypeIndex<VtArray<int>>(): return 1;
-        case VtGetKnownValueTypeIndex<VtArray<float>>(): return 1;
-        case VtGetKnownValueTypeIndex<VtArray<double>>(): return 1;
-        case VtGetKnownValueTypeIndex<VtArray<GfHalf>>(): return 1;
-    }
-
-    // can't handle other types
-    throw std::runtime_error("unknown extent for type");
+    return VtVisitValueType<_GetExtent>(vtv);
 }
 
 struct Qparams
@@ -332,6 +340,50 @@ ToPmc(const VtArray<int>& src)
     return ToPmc(src, pmc::DataType::Int32);
 }
 
+template <class Scalar>
+constexpr std::optional<pmc::DataType>
+_PmcScalarDataType()
+{
+    if constexpr (std::is_same_v<Scalar, int>)
+        return pmc::DataType::Int32;
+    else if constexpr (std::is_same_v<Scalar, float>)
+        return pmc::DataType::Float32;
+    else if constexpr (std::is_same_v<Scalar, double>)
+        return pmc::DataType::Float64;
+    else
+        return std::nullopt;
+}
+
+template <class T>
+constexpr std::optional<pmc::DataType>
+_PmcElementDataType()
+{
+    if constexpr (GfIsGfVec<T>::value)
+        return _PmcScalarDataType<typename T::ScalarType>();
+    else if constexpr (std::is_arithmetic_v<T>)
+        return _PmcScalarDataType<T>();
+    else
+        return std::nullopt;
+}
+
+struct _ToPmcVisitor {
+    // Determine PMC element type for the VtArray and perform conversion
+    template <class T>
+    pmc::ArrayBuffer operator()(const VtArray<T>& src) const {
+        constexpr std::optional<pmc::DataType> dataType =
+            _PmcElementDataType<T>();
+        if constexpr (dataType.has_value())
+            return ToPmc(src, *dataType);
+        else
+            return (*this)(VtValue{});
+    }
+
+    /// Non array types or arrays with unsupported element types.
+    pmc::ArrayBuffer operator()(const VtValue&) const {
+        throw std::runtime_error("missing buffer type converter");
+    }
+};
+
 /// Wrap VtArray-containing VtValue in pmc::ArrayBuffer
 pmc::ArrayBuffer
 ToPmc(const VtValue& src)
@@ -339,31 +391,7 @@ ToPmc(const VtValue& src)
     if (src.IsEmpty())
         return ToPmc(nullptr, 0, 0, pmc::DataType::Int32);
 
-    switch (src.GetKnownValueTypeIndex()) {
-#define CASE(T, type) case VtGetKnownValueTypeIndex<T>(): \
-            return ToPmc(src.UncheckedGet<T>(), type)
-        CASE(VtArray<GfVec2i>, pmc::DataType::Int32);
-        CASE(VtArray<GfVec2f>, pmc::DataType::Float32);
-        //CASE(VtArray<GfVec2h>, pmc::DataType::Float16);
-        CASE(VtArray<GfVec2d>, pmc::DataType::Float64);
-        CASE(VtArray<GfVec3i>, pmc::DataType::Int32);
-        CASE(VtArray<GfVec3f>, pmc::DataType::Float32);
-        //CASE(VtArray<GfVec3h>, pmc::DataType::Float16);
-        CASE(VtArray<GfVec3d>, pmc::DataType::Float64);
-        CASE(VtArray<GfVec4i>, pmc::DataType::Int32);
-        CASE(VtArray<GfVec4f>, pmc::DataType::Float32);
-        //CASE(VtArray<GfVec4h>, pmc::DataType::Float16);
-        CASE(VtArray<GfVec4d>, pmc::DataType::Float64);
-        //CASE(VtArray<bool>, pmc::DataType::Int8);
-        CASE(VtArray<int>, pmc::DataType::Int32);
-        CASE(VtArray<float>, pmc::DataType::Float32);
-        //CASE(VtArray<GfHalf>, pmc::DataType::Float16);
-        CASE(VtArray<double>, pmc::DataType::Float64);
-#undef CASE
-    }
-
-    // can't handle other types
-    throw std::runtime_error("missing buffer type converter");
+    return VtVisitValue(src, _ToPmcVisitor{});
 }
 
 Qparams QparamsDefault(const TfToken& pvRole)
