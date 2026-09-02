@@ -128,7 +128,7 @@ UsdPmcMeshEncoder::Encode(UsdGeomMesh* mesh, const VtDictionary& options,
         return bs;
     }
     try {
-        PmcEncodeSession pmces = PmcEncodeSession{UsdGeomMesh(*mesh), options};
+        UsdPmc_EncodeSession pmces = UsdPmc_EncodeSession{UsdGeomMesh(*mesh), options};
         bs = pmces.encode();
         // resultInfo is currently unused but could be populated in the future
         if (processedAttributes)
@@ -146,10 +146,10 @@ bool
 UsdPmcMeshEncoder::_ExtractUSDZFiles() {
     bool extracted = true;
     bool gotEntry = false;
-    SdfZipFile zipFile = SdfZipFile::Open(_inUSDZFile.string());
+    SdfZipFile zipFile = SdfZipFile::Open(_inFile.string());
     if (!zipFile) {
         TF_RUNTIME_ERROR("Error: Failed to open USDZ file: " +
-                         _inUSDZFile.string());
+                         _inFile.string());
         return false;
     }
     for (auto it = zipFile.begin(), e = zipFile.end(); it != e; ++it) {
@@ -219,10 +219,10 @@ UsdPmcMeshEncoder::_PackUSDZ() {
 
     // Create the output USDZ file writer
     SdfZipFileWriter usdZipWriter =
-        SdfZipFileWriter::CreateNew(_outUSDZFile.string());
+        SdfZipFileWriter::CreateNew(_outFile.string());
     if (!usdZipWriter) {
         TF_RUNTIME_ERROR("Unable to create output USDZ file: " +
-                          _outUSDZFile.string());
+                          _outFile.string());
         return false;
     }
 
@@ -245,7 +245,7 @@ UsdPmcMeshEncoder::_PackUSDZ() {
     // Save the final USDZ file
     if (!usdZipWriter.Save()) {
         TF_RUNTIME_ERROR("Error: Failed to save output usdz file: " +
-                          _outUSDZFile.string());
+                          _outFile.string());
         return false;
     }
     return packed;
@@ -361,8 +361,8 @@ bool UsdPmcMeshEncoder::EncodeStage(std::filesystem::path inFile,
         return false;
     }
 
-    _inUSDZFile = inFile;
-    _outUSDZFile = outFile;
+    _inFile = inFile;
+    _outFile = outFile;
 
     // Create temporary directory for processing
     const std::string tmpDirStr =
@@ -490,7 +490,7 @@ bool UsdPmcMeshEncoder::EncodeStage(std::filesystem::path inFile,
 
 bool
 UsdPmcMeshEncoder::_WriteNonUsdzOutput() {
-    std::filesystem::path outDir = _outUSDZFile.parent_path();
+    std::filesystem::path outDir = _outFile.parent_path();
     if (outDir.empty()) {
         outDir = std::filesystem::current_path();
     }
@@ -528,7 +528,7 @@ UsdPmcMeshEncoder::_WriteNonUsdzOutput() {
     // Copy them alongside the output, preserving their relative paths, so the
     // references continue to resolve after the temp dir is removed. USD layers
     // were flattened into the exported root and are intentionally skipped.
-    std::string inExt = _inUSDZFile.extension().string();
+    std::string inExt = _inFile.extension().string();
     std::transform(inExt.begin(), inExt.end(), inExt.begin(), ::tolower);
     if (inExt == ".usdz") {
         for (const std::string& ref : _references) {

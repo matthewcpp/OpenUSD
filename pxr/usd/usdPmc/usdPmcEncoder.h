@@ -17,6 +17,9 @@
 #include "pxr/usd/usdGeom/mesh.h"
 
 #include <filesystem>
+#include <list>
+#include <set>
+#include <string>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -53,18 +56,18 @@ public:
                                 std::set<std::string>* processedSubSets,
                                 VtDictionary* resultInfo);
 
-    /// Encode an entire USD stage from USDZ file to PMC-compressed USDZ.
-    /// \param inUSDZFile Path to input USDZ file
-    /// \param outUSDZFile Path to output USDZ file with PMC compression
+    /// Encode all UsdGeomMesh in a USD stage into PMC compressed format.
+    /// \param inFile Path to input file
+    /// \param outFile Path to output file with PMC compression
     /// \return true if encoding was successful, false otherwise
     USDPMC_API
-    bool EncodeStage(std::filesystem::path inUSDZFile,
-                                std::filesystem::path outUSDZFile,
+    bool EncodeStage(std::filesystem::path inFile,
+                                std::filesystem::path outFile,
                                 const VtDictionary& options);
 
 private:
-    std::filesystem::path   _inUSDZFile;
-    std::filesystem::path   _outUSDZFile;
+    std::filesystem::path   _inFile;
+    std::filesystem::path   _outFile;
     std::filesystem::path   _outRootFile;
     std::list<std::string>  _references;
     std::filesystem::path   _tempDir;

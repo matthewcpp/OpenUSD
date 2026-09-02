@@ -20,19 +20,19 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-/// \struct PmcEncodeSession
+/// \struct UsdPmc_EncodeSession
 ///
 /// Single mesh PMC encoder session.
 ///
 /// This structure manages the encoding of a single UsdGeomMesh into PMC
 /// compressed format. It handles the conversion of geometry primitives,
 /// attributes, and metadata from USD to PMC representation.
-struct PmcEncodeSession
+struct UsdPmc_EncodeSession
 {
     /// Construct an encode session for the given mesh.
     /// \param ugm The UsdGeomMesh to encode
     /// \param options Encoder parameters
-    PmcEncodeSession(const UsdGeomMesh& ugm, const VtDictionary& options)
+    UsdPmc_EncodeSession(const UsdGeomMesh& ugm, const VtDictionary& options)
     : _ugm(ugm), _options(options)
     {}
 
@@ -98,13 +98,13 @@ protected:
 };
 
 inline std::set<std::string>&
-PmcEncodeSession::GetProcessedAttributeNames()
+UsdPmc_EncodeSession::GetProcessedAttributeNames()
 {
     return _processedAttributes;
 }
 
 inline std::set<std::string>&
-PmcEncodeSession::GetProcessedGeomSubsetNames()
+UsdPmc_EncodeSession::GetProcessedGeomSubsetNames()
 {
     return _processedSubsets;
 }

@@ -2418,9 +2418,9 @@ group = parser.add_argument_group(title="AOMedia Polygonal Mesh Coding Options")
 subgroup = group.add_mutually_exclusive_group()
 subgroup.add_argument("--pmc", dest="build_pmc", action="store_true",
                       default=True,
-                      help="Build PMC library for USD (default)")
+                      help="Build PMC library for USD")
 subgroup.add_argument("--no-pmc", dest="build_pmc", action="store_false",
-                      help="Do not build PMC library for USD")
+                      help="Do not build PMC library for USD (default)")
 
 args = parser.parse_args()
 

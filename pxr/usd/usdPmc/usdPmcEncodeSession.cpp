@@ -51,7 +51,7 @@ PXR_NAMESPACE_OPEN_SCOPE
 //=============================================================================
 // Coordinate system definition
 
-struct PmcEncodeSession::CoordSys {
+struct UsdPmc_EncodeSession::CoordSys {
     pmc::Rational scale;
     std::vector<int> origin;
 };
@@ -61,7 +61,7 @@ struct PmcEncodeSession::CoordSys {
 
 namespace {
 
-using CoordSys = PmcEncodeSession::CoordSys;
+using CoordSys = UsdPmc_EncodeSession::CoordSys;
 
 /// Template utility for validating expected values during PMC encoding
 /// operations.
@@ -567,26 +567,15 @@ GetTraversalStrategyForAttr(const pmc::AttributeMeshpartInfo& ampi)
 pmc::PredictionStrategy
 GetPredictionStrategyForAttr(const pmc::AttributeMeshpartInfo& ampi)
 {
-    using AS = pmc::AttributeScope;
     using AT = pmc::AttributeType;
     using PS = pmc::PredictionStrategy;
 
-    static auto normalsStrategy = [](){
-        const auto ev = getenv("USD_PMC_OCTAHEDRAL_NORMALS");
-        if (ev && ev[0] == '1')
-            return PS::UNITARY_OCTAHEDRAL_NORMAL_VECTOR;
-        return PS::LINEAR;
-    }();
-
+    // XXX: Info can be examined to determine if 
+    // PS::UNITARY_OCTAHEDRAL_NORMAL_VECTOR strategy may be used.
     switch (ampi.type) {
         default:                 return PS::LINEAR;
         case AT::TEX_COORD:      return PS::TEX_COORD_GEOMETRY_GUIDED;
-        case AT::NORMAL:
-            switch (ampi.scope) {
-                case AS::CORNER: return normalsStrategy;
-                case AS::VERTEX: return normalsStrategy;
-                default:         return PS::LINEAR;
-            }
+        case AT::NORMAL:         return PS::LINEAR;
     }
 }
 
@@ -727,7 +716,7 @@ ConvertBuffer(
 
 /// Set up geometry data for PMC encoding.
 void
-PmcEncodeSession::_setupGeom()
+UsdPmc_EncodeSession::_setupGeom()
 {
     // Extract core UsdGeomMesh primitives with their standard specification
     const auto fvcs = GetAs<VtArray<int>>(_ugm.GetFaceVertexCountsAttr());
@@ -768,7 +757,7 @@ PmcEncodeSession::_setupGeom()
 }
 
 pmc::AttributeMeshpart&
-PmcEncodeSession::_setupAttr(VtValue vals, VtArray<int> idxs)
+UsdPmc_EncodeSession::_setupAttr(VtValue vals, VtArray<int> idxs)
 {
     auto& amp = _amps.emplace_back();
     amp.info.frameOrderCount = 0,
@@ -814,7 +803,7 @@ JsonAuiForAttr(const UsdAttribute& attr)
 
 /// Setup a single primvar.
 void
-PmcEncodeSession::_setupPrimvar(const UsdGeomPrimvar& pv)
+UsdPmc_EncodeSession::_setupPrimvar(const UsdGeomPrimvar& pv)
 {
     // Ignore constant primitives (no point encoding them)
     if (pv.GetInterpolation() == pxr::UsdGeomTokens->constant) {
@@ -856,7 +845,7 @@ PmcEncodeSession::_setupPrimvar(const UsdGeomPrimvar& pv)
 
 /// Build face group information from all subsets.
 void
-PmcEncodeSession::_setupGeomSubsets()
+UsdPmc_EncodeSession::_setupGeomSubsets()
 {
     auto sets = UsdGeomSubset::GetAllGeomSubsets(_ugm);
     if (sets.empty()) {
@@ -905,7 +894,7 @@ PmcEncodeSession::_setupGeomSubsets()
 
 /// Setup crease data for PMC encoding.
 void
-PmcEncodeSession::_setupCreases()
+UsdPmc_EncodeSession::_setupCreases()
 {
     const auto attrIdxs = _ugm.GetCreaseIndicesAttr();
     const auto attrLens = _ugm.GetCreaseLengthsAttr();
@@ -944,7 +933,7 @@ PmcEncodeSession::_setupCreases()
 
 /// Setup crease data for PMC encoding.
 void
-PmcEncodeSession::_setupCorners()
+UsdPmc_EncodeSession::_setupCorners()
 {
     const auto attrIdxs = _ugm.GetCornerIndicesAttr();
     const auto attrVals = _ugm.GetCornerSharpnessesAttr();
@@ -981,7 +970,7 @@ PmcEncodeSession::_setupCorners()
 
 /// Find all attributes for coding.
 void
-PmcEncodeSession::_setupAttrs()
+UsdPmc_EncodeSession::_setupAttrs()
 {
     for (auto& pv : UsdGeomPrimvarsAPI(_ugm).GetPrimvarsWithAuthoredValues()) {
         _setupPrimvar(pv);
@@ -1044,7 +1033,7 @@ PmcEncodeSession::_setupAttrs()
 
 /// Configure the PMC encoder with geometry and attribute information.
 void
-PmcEncodeSession::_configurePmc()
+UsdPmc_EncodeSession::_configurePmc()
 {
     constexpr _Expect throwOnError {pmc::Error::OK};
 
@@ -1059,7 +1048,7 @@ PmcEncodeSession::_configurePmc()
 
 /// Perform the actual PMC encoding operation.
 std::vector<uint8_t>
-PmcEncodeSession::_encode()
+UsdPmc_EncodeSession::_encode()
 {
     // Configure geometry encoding parameters
     pmc::GeometryEncodingParameters geomOpts;
@@ -1125,7 +1114,7 @@ PmcEncodeSession::_encode()
 }
 
 std::vector<uint8_t>
-PmcEncodeSession::encode()
+UsdPmc_EncodeSession::encode()
 {
     // Set up core mesh geometry (vertices, faces, indices)
     _setupGeom();

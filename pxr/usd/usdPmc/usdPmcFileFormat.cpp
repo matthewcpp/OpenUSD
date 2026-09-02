@@ -105,13 +105,8 @@ UsdPmcFileFormat::Read(SdfLayer* layer,
 bool
 UsdPmcFileFormat::ReadFromString(SdfLayer* layer,
                                  const std::string& str) const {
-    try {
-        return SdfFileFormat::FindById(SdfUsdaFileFormatTokens->Id)
-            ->ReadFromString(layer, str);
-    } catch(...) {
-        TF_RUNTIME_ERROR("ReadFromString: exception");
-        return false;
-    }
+    return SdfFileFormat::FindById(SdfUsdaFileFormatTokens->Id)
+        ->ReadFromString(layer, str);
 }
 
 // Defer to the usda file format for this.
@@ -162,7 +157,7 @@ UsdPmcFileFormat::_ReadFromBuffer(SdfLayer* layer,
 
     // Create temporary USD objects for decompression
     SdfLayerRefPtr decodedUsdMeshLayer =
-        SdfLayer::CreateAnonymous(".usda");
+        SdfLayer::CreateAnonymous();
     UsdStageRefPtr stage = UsdStage::Open(decodedUsdMeshLayer);
     UsdGeomMesh decodedUsdMesh = UsdGeomMesh::Define(stage,
         SdfPath("/DecodedUsdMesh"));
