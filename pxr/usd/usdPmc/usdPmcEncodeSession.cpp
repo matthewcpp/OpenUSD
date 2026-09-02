@@ -88,7 +88,7 @@ _Expect<T>::operator=(const T& x) const
 /// Extract typed values from USD attributes at earliest time code.
 template<typename T>
 T
-GetAs(const UsdAttribute& attr)
+_GetAs(const UsdAttribute& attr)
 {
     T values;
     attr.Get(&values, UsdTimeCode::EarliestTime());
@@ -132,7 +132,7 @@ struct _GetExtent<VtArray<T>> {
 /// Analyzes the VtValue type to determine how many components each 
 // element has.
 int
-GetExtentFromType(const VtValue& vtv)
+_GetExtentFromType(const VtValue& vtv)
 {
     if (vtv.IsEmpty())
         return 0;
@@ -157,7 +157,7 @@ struct MinMax {
 
 // Determine min&max bounds of buffer values.
 std::vector<MinMax>
-GetMinMax(const pmc::ArrayBuffer& vals)
+_GetMinMax(const pmc::ArrayBuffer& vals)
 {
     auto fn = [&vals](const auto* ptr) {
         std::vector<MinMax> minmax(vals.componentsPerVector);
@@ -182,11 +182,11 @@ GetMinMax(const pmc::ArrayBuffer& vals)
 /// Derive coding coordinate system using number of fractional bits to scale
 // values for quantization parameters.
 CoordSys
-MakeCoordSysByFracBits(const pmc::ArrayBuffer& vals, const Qparams& qp)
+_MakeCoordSysByFracBits(const pmc::ArrayBuffer& vals, const Qparams& qp)
 {
     // integer bits, ignores sign
     int intbits = 0;
-    for (auto [min, max] : GetMinMax(vals)) {
+    for (auto [min, max] : _GetMinMax(vals)) {
         int exp;
         std::frexp(std::max(std::abs(min), std::abs(max)), &exp);
         intbits = std::max(intbits, exp);
@@ -205,9 +205,9 @@ MakeCoordSysByFracBits(const pmc::ArrayBuffer& vals, const Qparams& qp)
 
 /// Derive coding coordinate system mapping bounding box to maxsigbits.
 CoordSys
-MakeCoordSysByBBox(const pmc::ArrayBuffer& vals, const Qparams& qp)
+_MakeCoordSysByBBox(const pmc::ArrayBuffer& vals, const Qparams& qp)
 {
-    const auto minmaxs = GetMinMax(vals);
+    const auto minmaxs = _GetMinMax(vals);
     double range = 0.;
     for (auto [min, max] : minmaxs)
         range = std::max(range, max - min);
@@ -244,27 +244,27 @@ MakeCoordSysByBBox(const pmc::ArrayBuffer& vals, const Qparams& qp)
 // If environment variable USD_PMC_COORDSYS_BBOX is 1, bbox method is used.
 // Otherwise, the more appropriate fractional bit method is used.
 CoordSys
-MakeCoordSys(const pmc::ArrayBuffer& vals, const Qparams& qp)
+_MakeCoordSys(const pmc::ArrayBuffer& vals, const Qparams& qp)
 {
     static bool coordSysModeIsFracBits = [](){
         const auto ev = getenv("USD_PMC_COORDSYS_BBOX");
         return (!ev || ev[0] != '1');
     }();
     if (!coordSysModeIsFracBits)
-        return MakeCoordSysByBBox(vals, qp);
-    return MakeCoordSysByFracBits(vals, qp);
+        return _MakeCoordSysByBBox(vals, qp);
+    return _MakeCoordSysByFracBits(vals, qp);
 }
 
 /// Derive coding coordinate system for mesh geometry.
 CoordSys
-MakeCoordSys(const pmc::GeometryMeshpart& gmp, const Qparams& qp)
+_MakeCoordSys(const pmc::GeometryMeshpart& gmp, const Qparams& qp)
 {
-    return MakeCoordSys(gmp.buffers.positions, qp);
+    return _MakeCoordSys(gmp.buffers.positions, qp);
 }
 
 /// Derive coding coordinate system for attributes.
 CoordSys
-MakeCoordSys(const pmc::AttributeMeshpart& amp, const Qparams& qp)
+_MakeCoordSys(const pmc::AttributeMeshpart& amp, const Qparams& qp)
 {
     // for Normals, don't offset; choose a sensible scale.
     if (amp.info.type == pmc::AttributeType::NORMAL) {
@@ -274,7 +274,7 @@ MakeCoordSys(const pmc::AttributeMeshpart& amp, const Qparams& qp)
         return cs;
     }
 
-    return MakeCoordSys(amp.buffers.values, qp);
+    return _MakeCoordSys(amp.buffers.values, qp);
 }
 
 /// Insert coordnate system into geometry info
@@ -313,7 +313,7 @@ GetStride(pmc::DataType type)
 
 /// Wrap data in pmc::ArrayBuffer
 pmc::ArrayBuffer
-ToPmc(uint8_t* data, size_t width, size_t length, pmc::DataType type)
+_ToPmc(uint8_t* data, size_t width, size_t length, pmc::DataType type)
 {
     pmc::ArrayBuffer result;
     result.data = data;
@@ -328,16 +328,16 @@ ToPmc(uint8_t* data, size_t width, size_t length, pmc::DataType type)
 /// Wrap VtArray in pmc::ArrayBuffer
 template<typename T>
 pmc::ArrayBuffer
-ToPmc(const VtArray<T>& src, pmc::DataType type)
+_ToPmc(const VtArray<T>& src, pmc::DataType type)
 {
-    return ToPmc((uint8_t*)src.data(), oneextent_v<T>, src.size(), type);
+    return _ToPmc((uint8_t*)src.data(), oneextent_v<T>, src.size(), type);
 }
 
 /// Wrap VtArray<int> in pmc::ArrayBuffer
 pmc::ArrayBuffer
-ToPmc(const VtArray<int>& src)
+_ToPmc(const VtArray<int>& src)
 {
-    return ToPmc(src, pmc::DataType::Int32);
+    return _ToPmc(src, pmc::DataType::Int32);
 }
 
 template <class Scalar>
@@ -373,7 +373,7 @@ struct _ToPmcVisitor {
         constexpr std::optional<pmc::DataType> dataType =
             _PmcElementDataType<T>();
         if constexpr (dataType.has_value())
-            return ToPmc(src, *dataType);
+            return _ToPmc(src, *dataType);
         else
             return (*this)(VtValue{});
     }
@@ -386,15 +386,15 @@ struct _ToPmcVisitor {
 
 /// Wrap VtArray-containing VtValue in pmc::ArrayBuffer
 pmc::ArrayBuffer
-ToPmc(const VtValue& src)
+_ToPmc(const VtValue& src)
 {
     if (src.IsEmpty())
-        return ToPmc(nullptr, 0, 0, pmc::DataType::Int32);
+        return _ToPmc(nullptr, 0, 0, pmc::DataType::Int32);
 
     return VtVisitValue(src, _ToPmcVisitor{});
 }
 
-Qparams QparamsDefault(const TfToken& pvRole)
+Qparams _QparamsDefault(const TfToken& pvRole)
 {
     if (pvRole == pxr::SdfValueRoleNames->Color) {
         return Qparams{8,8};
@@ -411,11 +411,11 @@ Qparams QparamsDefault(const TfToken& pvRole)
 /// Look-up an attribute's options-specified quantization parameters.
 // First looks up options["mesh-qbits"][name]; if not found, then with name = "*";
 // if still not found, uses default values.
-Qparams QparamsFromOptions(const VtDictionary& options, const TfToken& name, const TfToken& pvRole)
+Qparams _QparamsFromOptions(const VtDictionary& options, const TfToken& name, const TfToken& pvRole)
 {
     auto it = options.find("mesh-qbits");
     if (it == options.end() || !it->second.IsHolding<VtDictionary>())
-        return QparamsDefault(pvRole);
+        return _QparamsDefault(pvRole);
 
     const auto vtv =
         [dict = it->second.UncheckedGet<VtDictionary>(), name]() -> VtValue {
@@ -429,14 +429,14 @@ Qparams QparamsFromOptions(const VtDictionary& options, const TfToken& name, con
         if (int nbits = vtv.Get<int>(); vtv.IsHolding<int>())
             return Qparams{nbits, nbits};
 
-    return QparamsDefault(pvRole);
+    return _QparamsDefault(pvRole);
 }
 
 //=============================================================================
 // :: Mesh properties
 
 pmc::MeshFaceType
-GetMeshFaceTypeFromFaceVertexCounts(const VtArray<int> fvcs)
+_GetMeshFaceTypeFromFaceVertexCounts(const VtArray<int> fvcs)
 {
     const auto minmax = std::minmax_element(fvcs.cbegin(), fvcs.cend());
     const int min = *minmax.first;
@@ -456,7 +456,7 @@ GetMeshFaceTypeFromFaceVertexCounts(const VtArray<int> fvcs)
 }
 
 pmc::AttributeScope
-GetScopeFromUsd(pxr::TfToken interp)
+_GetScopeFromUsd(pxr::TfToken interp)
 {
     using AS = pmc::AttributeScope;
     if (interp == pxr::UsdGeomTokens->vertex) {
@@ -478,7 +478,7 @@ GetScopeFromUsd(pxr::TfToken interp)
 
 /// Try and guess the attribute type from the name.
 pmc::AttributeType
-GuessAttributeType(const TfToken pvRole, const TfToken pvName)
+_GuessAttributeType(const TfToken pvRole, const TfToken pvName)
 {
     using AT = pmc::AttributeType;
     if (pvRole == pxr::SdfValueRoleNames->Color) {
@@ -517,7 +517,7 @@ GuessAttributeType(const TfToken pvRole, const TfToken pvName)
 
 /// Pick an index coding strategy.
 pmc::AttributeIndicesCodingStrategy
-GetIndicesStrategyForAttr(const pmc::AttributeMeshpartInfo& ampi)
+_GetIndicesStrategyForAttr(const pmc::AttributeMeshpartInfo& ampi)
 {
     using AICS = pmc::AttributeIndicesCodingStrategy;
 
@@ -552,7 +552,7 @@ GetIndicesStrategyForAttr(const pmc::AttributeMeshpartInfo& ampi)
 
 /// Pick the traversal strategy.
 pmc::TraversalStrategy
-GetTraversalStrategyForAttr(const pmc::AttributeMeshpartInfo& ampi)
+_GetTraversalStrategyForAttr(const pmc::AttributeMeshpartInfo& ampi)
 {
     using AT = pmc::AttributeType;
     using TS = pmc::TraversalStrategy;
@@ -565,7 +565,7 @@ GetTraversalStrategyForAttr(const pmc::AttributeMeshpartInfo& ampi)
 
 /// Pick the traversal strategy.
 pmc::PredictionStrategy
-GetPredictionStrategyForAttr(const pmc::AttributeMeshpartInfo& ampi)
+_GetPredictionStrategyForAttr(const pmc::AttributeMeshpartInfo& ampi)
 {
     using AT = pmc::AttributeType;
     using PS = pmc::PredictionStrategy;
@@ -583,15 +583,15 @@ GetPredictionStrategyForAttr(const pmc::AttributeMeshpartInfo& ampi)
 // :: Quantization
 
 /// Scale and round floating-point values according to coordSys.
-struct Quantizer {
+struct _Quantizer {
     float _scale;
     std::vector<float> _offset;
 
-    Quantizer(float scale, int32_t* origin, size_t width);
+    _Quantizer(float scale, int32_t* origin, size_t width);
     int32_t* operator()(int32_t* dst, const double* src, size_t width) const;
 };
 
-Quantizer::Quantizer(float scale, int32_t* origin, size_t width)
+_Quantizer::_Quantizer(float scale, int32_t* origin, size_t width)
     : _scale(scale)
 {
     auto invScale = 1.0 / _scale;
@@ -600,21 +600,21 @@ Quantizer::Quantizer(float scale, int32_t* origin, size_t width)
 }
 
 int32_t*
-Quantizer::operator()(int32_t* dst, const double* src, size_t width) const
+_Quantizer::operator()(int32_t* dst, const double* src, size_t width) const
 {
     for (size_t k = 0; k < width; k++)
         dst[k] = int(std::round((src[k] - _offset[k]) * _scale));
     return dst + width;
 }
 
-struct QuantizerOctahedral {
+struct _QuantizerOctahedral {
     double _oneOcs;
-    QuantizerOctahedral(float scale) : _oneOcs(scale) {}
+    _QuantizerOctahedral(float scale) : _oneOcs(scale) {}
     int32_t* operator()(int32_t* dst, const double* src, size_t width) const;
 };
 
 int32_t*
-QuantizerOctahedral::operator()(int32_t* dst, const double* src, size_t width)
+_QuantizerOctahedral::operator()(int32_t* dst, const double* src, size_t width)
 const {
     double sum = std::abs(src[0]) + std::abs(src[1]) + std::abs(src[2]);
     if (sum == 0.0)
@@ -677,7 +677,7 @@ const {
 // :: Buffer conversion, applying convert(...) to each vector
 
 pmc::ArrayBuffer
-ConvertBuffer(
+_ConvertBuffer(
     pmc::ArrayBuffer& buffer,
     std::vector<int32_t>& backing,
     std::function<int32_t*(int32_t*,double*,size_t)> convert)
@@ -704,7 +704,7 @@ ConvertBuffer(
         default: return buffer;
     }
 
-    return ToPmc((uint8_t*)backing.data(), buffer.componentsPerVector,
+    return _ToPmc((uint8_t*)backing.data(), buffer.componentsPerVector,
             buffer.vectorCount, pmc::DataType::Int32);
 }
 
@@ -719,9 +719,9 @@ void
 UsdPmc_EncodeSession::_setupGeom()
 {
     // Extract core UsdGeomMesh primitives with their standard specification
-    const auto fvcs = GetAs<VtArray<int>>(_ugm.GetFaceVertexCountsAttr());
-    const auto vidxs = GetAs<VtArray<int>>(_ugm.GetFaceVertexIndicesAttr());
-    const auto vtxs = GetAs<VtValue>(_ugm.GetPointsAttr());
+    const auto fvcs = _GetAs<VtArray<int>>(_ugm.GetFaceVertexCountsAttr());
+    const auto vidxs = _GetAs<VtArray<int>>(_ugm.GetFaceVertexIndicesAttr());
+    const auto vtxs = _GetAs<VtValue>(_ugm.GetPointsAttr());
 
     // Validate that essential geometry data is present
     if (fvcs.empty() || vidxs.empty() || vtxs.IsEmpty()) {
@@ -731,15 +731,15 @@ UsdPmc_EncodeSession::_setupGeom()
     // Configure geometry meshpart information
     _gmp.info.frameOrderCount = 0;
     _gmp.info.meshpartId = 0;
-    _gmp.info.faceType = GetMeshFaceTypeFromFaceVertexCounts(fvcs);
+    _gmp.info.faceType = _GetMeshFaceTypeFromFaceVertexCounts(fvcs);
     _gmp.info.faceCount = fvcs.size();
     _gmp.info.vertexCount = vtxs.GetArraySize();
     _gmp.info.indexCount = vidxs.size();
 
     // Convert USD data to PMC buffer format
-    _gmp.buffers.positions = ToPmc(vtxs);
-    _gmp.buffers.faceDegrees = ToPmc(fvcs);
-    _gmp.buffers.indices = ToPmc(vidxs);
+    _gmp.buffers.positions = _ToPmc(vtxs);
+    _gmp.buffers.faceDegrees = _ToPmc(fvcs);
+    _gmp.buffers.indices = _ToPmc(vidxs);
 
     // Keep references to data alive
     _keepAlive.emplace_back(vtxs);
@@ -748,7 +748,7 @@ UsdPmc_EncodeSession::_setupGeom()
 
     // Calculate quantization parameters for vertex positions
     auto& usdname = UsdGeomTokens->points;
-    _gmp.info << MakeCoordSys(_gmp, QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Point));
+    _gmp.info << _MakeCoordSys(_gmp, _QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Point));
 
     // Track which attributes have been processed
     _processedAttributes.insert(_ugm.GetFaceVertexCountsAttr().GetName());
@@ -763,7 +763,7 @@ UsdPmc_EncodeSession::_setupAttr(VtValue vals, VtArray<int> idxs)
     amp.info.frameOrderCount = 0,
     amp.info.meshpartId = 0,
     amp.info.attributeId = _amps.size() - 1;
-    amp.info.componentsPerVector = GetExtentFromType(vals);
+    amp.info.componentsPerVector = _GetExtentFromType(vals);
     amp.info.type = pmc::AttributeType::USER_DEFINED_START;
     // todo: fix api to remove one of these
     amp.info.outputVectorCount = amp.info.vectorCount = vals.GetArraySize(),
@@ -771,12 +771,12 @@ UsdPmc_EncodeSession::_setupAttr(VtValue vals, VtArray<int> idxs)
     amp.info.explicitIndices = !idxs.empty();
 
     if (!vals.IsEmpty()) {
-        amp.buffers.values = ToPmc(vals);
+        amp.buffers.values = _ToPmc(vals);
         _keepAlive.emplace_back(vals);
     }
 
     if (!idxs.empty()) {
-        amp.buffers.indices = ToPmc(idxs);
+        amp.buffers.indices = _ToPmc(idxs);
         _keepAlive.emplace_back(idxs);
     }
 
@@ -812,15 +812,15 @@ UsdPmc_EncodeSession::_setupPrimvar(const UsdGeomPrimvar& pv)
 
     auto pvName = pv.GetPrimvarName();
     const auto pvRole = pv.GetTypeName().GetRole();
-    const auto vals = GetAs<VtValue>(pv);
-    const auto idxs = GetAs<VtArray<int>>(pv.GetIndicesAttr());
+    const auto vals = _GetAs<VtValue>(pv);
+    const auto idxs = _GetAs<VtArray<int>>(pv.GetIndicesAttr());
     if (!vals.IsArrayValued() || vals.IsHolding<VtArray<std::string>>() || vals.IsHolding<VtArray<TfToken>>()) {
         return;
     }
 
     auto& amp = _setupAttr(vals, idxs);
-    amp.info.scope = GetScopeFromUsd(pv.GetInterpolation());
-    amp.info.type = GuessAttributeType(pvRole, pvName);
+    amp.info.scope = _GetScopeFromUsd(pv.GetInterpolation());
+    amp.info.type = _GuessAttributeType(pvRole, pvName);
 
     // flat arrays may have elementSize set manually, eg: jointIndices
     // todo: check these are treated as values ...
@@ -833,7 +833,7 @@ UsdPmc_EncodeSession::_setupPrimvar(const UsdGeomPrimvar& pv)
         amp.buffers.values.stride *= width;
     }
 
-    amp.info << MakeCoordSys(amp, QparamsFromOptions(_options, pvName, pvRole));
+    amp.info << _MakeCoordSys(amp, _QparamsFromOptions(_options, pvName, pvRole));
 
     // metadata
     amp.info.name = pv.GetName();
@@ -857,7 +857,7 @@ UsdPmc_EncodeSession::_setupGeomSubsets()
     vals.reserve(sets.size());
     size_t totalLen = 0;
     for (const auto& set : sets) {
-        auto len = GetAs<VtValue>(set.GetIndicesAttr()).GetArraySize();
+        auto len = _GetAs<VtValue>(set.GetIndicesAttr()).GetArraySize();
         vals.push_back(len);
         totalLen += len;
     }
@@ -866,7 +866,7 @@ UsdPmc_EncodeSession::_setupGeomSubsets()
     VtArray<int> idxs(totalLen);
     auto idxsIt = idxs.begin();
     for (const auto& set : sets) {
-        const auto setIdxs = GetAs<VtArray<int>>(set.GetIndicesAttr());
+        const auto setIdxs = _GetAs<VtArray<int>>(set.GetIndicesAttr());
         idxsIt = std::copy_n(setIdxs.begin(), setIdxs.size(), idxsIt);
     }
 
@@ -904,9 +904,9 @@ UsdPmc_EncodeSession::_setupCreases()
         if (!attr.HasAuthoredValue())
             return;
 
-    const auto idxs = GetAs<VtArray<int>>(attrIdxs);
-    const auto lens = GetAs<VtValue>(attrLens);
-    const auto vals = GetAs<VtValue>(attrVals);
+    const auto idxs = _GetAs<VtArray<int>>(attrIdxs);
+    const auto lens = _GetAs<VtValue>(attrLens);
+    const auto vals = _GetAs<VtValue>(attrVals);
 
     using pmc::IndicesInterpretation;
     auto& ampIdxs = _setupAttr(lens, idxs);
@@ -924,7 +924,7 @@ UsdPmc_EncodeSession::_setupCreases()
     ampVals.info.indicesInterpretation = IndicesInterpretation::VALUE_INDEXING;
     ampVals.info.sparse = true;
     ampVals.info.jsonCustomAui = JsonAuiForAttr(attrVals);
-    ampVals.info << MakeCoordSys(ampVals, QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Vector));
+    ampVals.info << _MakeCoordSys(ampVals, _QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Vector));
 
     _processedAttributes.insert(attrIdxs.GetName());
     _processedAttributes.insert(attrLens.GetName());
@@ -942,8 +942,8 @@ UsdPmc_EncodeSession::_setupCorners()
         if (!attr.HasAuthoredValue())
             return;
 
-    const auto idxs = GetAs<VtArray<int>>(attrIdxs);
-    const auto vals = GetAs<VtValue>(attrVals);
+    const auto idxs = _GetAs<VtArray<int>>(attrIdxs);
+    const auto vals = _GetAs<VtValue>(attrVals);
 
     using pmc::IndicesInterpretation;
     auto& ampIdxs = _setupAttr({}, idxs);
@@ -962,7 +962,7 @@ UsdPmc_EncodeSession::_setupCorners()
     ampVals.info.indicesInterpretation = IndicesInterpretation::VALUE_INDEXING;
     ampVals.info.sparse = true;
     ampVals.info.jsonCustomAui = JsonAuiForAttr(attrVals);
-    ampVals.info << MakeCoordSys(ampVals, QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Vector));
+    ampVals.info << _MakeCoordSys(ampVals, _QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Vector));
 
     _processedAttributes.insert(attrIdxs.GetName());
     _processedAttributes.insert(attrVals.GetName());
@@ -980,19 +980,19 @@ UsdPmc_EncodeSession::_setupAttrs()
     // NB: for rendering, primvars should have priority; we preserve all data
     if (const auto attr = _ugm.GetNormalsAttr(); attr.HasAuthoredValue()) {
         auto& usdname = UsdGeomTokens->normals;
-        auto vals = GetAs<VtValue>(attr);
+        auto vals = _GetAs<VtValue>(attr);
         auto& amp = _setupAttr(vals, {});
         amp.info.type = pmc::AttributeType::NORMAL;
-        amp.info.scope = GetScopeFromUsd(_ugm.GetNormalsInterpolation());
+        amp.info.scope = _GetScopeFromUsd(_ugm.GetNormalsInterpolation());
         amp.info.jsonCustomAui = JsonAuiForAttr(attr);
         amp.info.name = attr.GetName();
-        amp.info << MakeCoordSys(amp, QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Normal));
+        amp.info << _MakeCoordSys(amp, _QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Normal));
         _processedAttributes.insert(attr.GetName());
     }
 
     if (const auto attr = _ugm.GetHoleIndicesAttr(); attr.HasAuthoredValue()) {
         using pmc::IndicesInterpretation;
-        auto& amp = _setupAttr({}, GetAs<VtArray<int>>(attr));
+        auto& amp = _setupAttr({}, _GetAs<VtArray<int>>(attr));
         amp.info.type = pmc::AttributeType::HOLE;
         amp.info.scope = pmc::AttributeScope::FACE;
         amp.info.indicesInterpretation = IndicesInterpretation::SCOPE_INDEXING;
@@ -1004,25 +1004,25 @@ UsdPmc_EncodeSession::_setupAttrs()
 
     if (const auto attr = _ugm.GetVelocitiesAttr(); attr.HasAuthoredValue()) {
         auto& usdname = UsdGeomTokens->velocities;
-        auto vals = GetAs<VtValue>(attr);
+        auto vals = _GetAs<VtValue>(attr);
         auto& amp = _setupAttr(vals, {});
         amp.info.type = pmc::AttributeType::USER_DEFINED_START;
         amp.info.scope = pmc::AttributeScope::VERTEX;
         amp.info.jsonCustomAui = JsonAuiForAttr(attr);
         amp.info.name = attr.GetName();
-        amp.info << MakeCoordSys(amp, QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Vector));
+        amp.info << _MakeCoordSys(amp, _QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Vector));
         _processedAttributes.insert(attr.GetName());
     }
 
     if (const auto attr = _ugm.GetAccelerationsAttr(); attr.HasAuthoredValue()) {
         auto& usdname = UsdGeomTokens->accelerations;
-        auto vals = GetAs<VtValue>(attr);
+        auto vals = _GetAs<VtValue>(attr);
         auto& amp = _setupAttr(vals, {});
         amp.info.type = pmc::AttributeType::USER_DEFINED_START;
         amp.info.scope = pmc::AttributeScope::VERTEX;
         amp.info.jsonCustomAui = JsonAuiForAttr(attr);
         amp.info.name = attr.GetName();
-        amp.info << MakeCoordSys(amp, QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Vector));
+        amp.info << _MakeCoordSys(amp, _QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Vector));
         _processedAttributes.insert(attr.GetName());
     }
 
@@ -1060,9 +1060,9 @@ UsdPmc_EncodeSession::_encode()
     size_t estSize = 0;
     estSize += _enc.estimateMaxEncodedSize(_gmp, geomOpts);
     for (const auto& amp : _amps) {
-        attrOpts.indicesCodingStrategy = GetIndicesStrategyForAttr(amp.info);
-        attrOpts.traversalStrategy = GetTraversalStrategyForAttr(amp.info);
-        attrOpts.predictionStrategy = GetPredictionStrategyForAttr(amp.info);
+        attrOpts.indicesCodingStrategy = _GetIndicesStrategyForAttr(amp.info);
+        attrOpts.traversalStrategy = _GetTraversalStrategyForAttr(amp.info);
+        attrOpts.predictionStrategy = _GetPredictionStrategyForAttr(amp.info);
         estSize += _enc.estimateMaxEncodedSize(amp, attrOpts);
     }
 
@@ -1075,8 +1075,8 @@ UsdPmc_EncodeSession::_encode()
 
     // Encode geometry meshpart
     if (1) {
-        Quantizer q(float(_gmp.info.coordSys), _gmp.info.coordSysOrigin, 3);
-        _gmp.buffers.positions = ConvertBuffer(_gmp.buffers.positions, tmp, q);
+        _Quantizer q(float(_gmp.info.coordSys), _gmp.info.coordSysOrigin, 3);
+        _gmp.buffers.positions = _ConvertBuffer(_gmp.buffers.positions, tmp, q);
     }
 
     // cross-reference attributes for encoder connectivity decisions
@@ -1089,19 +1089,19 @@ UsdPmc_EncodeSession::_encode()
     // Encode all attribute meshparts
     for (auto& amp : _amps) {
         using PS = pmc::PredictionStrategy;
-        attrOpts.indicesCodingStrategy = GetIndicesStrategyForAttr(amp.info);
-        attrOpts.traversalStrategy = GetTraversalStrategyForAttr(amp.info);
-        attrOpts.predictionStrategy = GetPredictionStrategyForAttr(amp.info);
+        attrOpts.indicesCodingStrategy = _GetIndicesStrategyForAttr(amp.info);
+        attrOpts.traversalStrategy = _GetTraversalStrategyForAttr(amp.info);
+        attrOpts.predictionStrategy = _GetPredictionStrategyForAttr(amp.info);
 
         if (amp.info.coordSys) {
             auto& cs = *amp.info.coordSys;
             if (attrOpts.predictionStrategy == PS::UNITARY_OCTAHEDRAL_NORMAL_VECTOR) {
-                QuantizerOctahedral q(float(cs.scale));
-                amp.buffers.values = ConvertBuffer(amp.buffers.values, tmp, q);
+                _QuantizerOctahedral q(float(cs.scale));
+                amp.buffers.values = _ConvertBuffer(amp.buffers.values, tmp, q);
                 amp.info.coordSysProjection = pmc::CoordSysProjection::OCTAHEDRAL;
             } else {
-                Quantizer q(float(cs.scale), cs.origin.data(), cs.origin.size());
-                amp.buffers.values = ConvertBuffer(amp.buffers.values, tmp, q);
+                _Quantizer q(float(cs.scale), cs.origin.data(), cs.origin.size());
+                amp.buffers.values = _ConvertBuffer(amp.buffers.values, tmp, q);
             }
         }
 
