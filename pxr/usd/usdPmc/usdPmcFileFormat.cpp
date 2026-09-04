@@ -75,31 +75,29 @@ bool
 UsdPmcFileFormat::Read(SdfLayer* layer,
                        const std::string& resolvedPath,
                        bool metadataOnly) const {
-    try {
-        // Open the PMC file as an asset
-        std::shared_ptr<ArAsset> bitstreamAsset =
-            ArGetResolver().OpenAsset(ArResolvedPath(resolvedPath));
-        if (!bitstreamAsset) {
-            TF_RUNTIME_ERROR("Failed to open file \"%s\"",
-                             resolvedPath.c_str());
-            return false;
-        }
-
-        // Decompress the PMC data into the USD layer
-        std::string error;
-        if (!_ReadFromBuffer(layer, bitstreamAsset->GetBuffer().get(),
-                             bitstreamAsset->GetSize(), metadataOnly,
-                             &error)) {
-            TF_RUNTIME_ERROR("Failed to read from PMC file \"%s\": %s",
-                             resolvedPath.c_str(), error.c_str());
-            return false;
-        }
-        return true;
-    } catch(...) {
-        TF_RUNTIME_ERROR("Exception: Failed to read from PMC file \"%s\"",
-                         resolvedPath.c_str());
+    // Open the PMC file as an asset
+    std::shared_ptr<ArAsset> bitstreamAsset =
+        ArGetResolver().OpenAsset(ArResolvedPath(resolvedPath));
+    if (!bitstreamAsset) {
+        TF_RUNTIME_ERROR("Failed to open file \"%s\"",
+                            resolvedPath.c_str());
         return false;
     }
+
+    // Decompress the PMC data into the USD layer
+    std::string error;
+    if (!_ReadFromBuffer(layer, bitstreamAsset->GetBuffer().get(),
+                            bitstreamAsset->GetSize(), metadataOnly,
+                            &error)) {
+        TF_RUNTIME_ERROR("Failed to read from PMC file \"%s\": %s",
+                            resolvedPath.c_str(), error.c_str());
+        return false;
+    }
+    return true;
+
+    TF_RUNTIME_ERROR("Exception: Failed to read from PMC file \"%s\"",
+                        resolvedPath.c_str());
+    return false;
 }
 
 bool

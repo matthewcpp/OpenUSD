@@ -28,6 +28,7 @@
 #include "pxr/usd/usdGeom/subset.h"
 #include "pxr/usd/usdGeom/tokens.h"
 #include "pxr/base/js/json.h"
+#include <vector>
 #include <string_view>
 #include <type_traits>
 
@@ -44,8 +45,9 @@ namespace {
 struct StaticCast {
     template<typename T>
     void operator()(T* dst, const int* src, size_t width) const {
-        for (size_t k = 0; k < width; k++)
+        for (size_t k = 0; k < width; k++) {
             dst[k] = T(src[k]);
+        }
     }
 };
 
@@ -87,23 +89,26 @@ Scaler::Scaler(const pmc::AttributeInfo::CoordinateSystem& cs)
 : scale(float(pmc::Rational{cs.scale.q, cs.scale.p}))
 , origin(cs.origin)
 {
-    for (size_t k = 0, end = origin.size(); k < end; k++)
+    for (size_t k = 0, end = origin.size(); k < end; k++) {
         origin[k] <<= cs.originScaleLog2[k];
+    }
 }
 
 Scaler::Scaler(const pmc::GeometryInfo& gi)
 : scale(float(pmc::Rational{gi.coordSys.q, gi.coordSys.p}))
 , origin(std::begin(gi.coordSysOrigin), std::end(gi.coordSysOrigin))
 {
-    for (size_t k = 0, end = origin.size(); k < end; k++)
+    for (size_t k = 0, end = origin.size(); k < end; k++) {
         origin[k] <<= gi.coordSysOriginScaleLog2[k];
+    }
 }
 
 template<typename T>
 void Scaler::operator()(T* dst, const int* src, size_t width) const
 {
-    for (size_t k = 0; k < width; k++)
+    for (size_t k = 0; k < width; k++) {
         dst[k] = T((src[k] + origin[k]) * scale);
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -127,12 +132,14 @@ struct Normalizer {
         scaler(dst, src, width);
 
         T l2 = 0;
-        for (size_t k = 0; k < width; ++k)
+        for (size_t k = 0; k < width; ++k) {
             l2 += dst[k] * dst[k];
+        }
         l2 = std::sqrt(l2);
 
-        for (size_t k = 0; k < width; ++k)
+        for (size_t k = 0; k < width; ++k) {
             dst[k] /= l2;
+        }
     }
 };
 
@@ -146,8 +153,9 @@ TransformToVtArray(const pmc::ArrayBuffer& buf, F&& fn)
 {
     VtArray<T> arr;
     arr.resize(buf.vectorCount);
-    for (size_t i = 0; i < buf.vectorCount; i++)
+    for (size_t i = 0; i < buf.vectorCount; i++) {
         fn(&arr[i][0], buf.vectorAtIndex<int>(i), buf.componentsPerVector);
+    }
     return VtValue(arr);
 }
 
@@ -159,8 +167,9 @@ TransformToVtArray(const pmc::ArrayBuffer& buf, F&& fn)
 {
     VtArray<T> arr;
     arr.resize(buf.vectorCount * buf.componentsPerVector);
-    for (int i = 0, j = 0; i < buf.vectorCount; i++, j += buf.componentsPerVector)
+    for (int i = 0, j = 0; i < buf.vectorCount; i++, j += buf.componentsPerVector) {
         fn(&arr[j], buf.vectorAtIndex<int>(i), buf.componentsPerVector);
+    }
     return VtValue(arr);
 }
 
@@ -196,33 +205,34 @@ TransformToVtArray(const pmc::ArrayBuffer& buf, F&& fn, VtValue dstType)
 
 template<typename UsdAttrT>
 bool
-SetConvertedScaledBuffer(UsdAttrT& dst, const pmc::AttributeMeshpart& amp)
-try {
-    const UsdAttribute& usdAttr = dst;
-    auto dstType = usdAttr.GetTypeName().GetDefaultValue();
+SetConvertedScaledBuffer(UsdAttrT& dst, const pmc::AttributeMeshpart& amp) {
+    try {
+        const UsdAttribute& usdAttr = dst;
+        auto dstType = usdAttr.GetTypeName().GetDefaultValue();
 
-    VtValue arr = [&](){
-        if (amp.info.coordSys) {
-            switch (amp.info.coordSysProjection) {
-            case pmc::CoordSysProjection::IDENTITY:
-                return TransformToVtArray(amp.buffers.values,
-                    Scaler(*amp.info.coordSys), dstType);
+        VtValue arr = [&](){
+            if (amp.info.coordSys) {
+                switch (amp.info.coordSysProjection) {
+                case pmc::CoordSysProjection::IDENTITY:
+                    return TransformToVtArray(amp.buffers.values,
+                        Scaler(*amp.info.coordSys), dstType);
 
-            case pmc::CoordSysProjection::OCTAHEDRAL:
-                return TransformToVtArray(amp.buffers.values,
-                    Normalizer(Scaler(*amp.info.coordSys)), dstType);
+                case pmc::CoordSysProjection::OCTAHEDRAL:
+                    return TransformToVtArray(amp.buffers.values,
+                        Normalizer(Scaler(*amp.info.coordSys)), dstType);
+                }
             }
-        }
 
-        return TransformToVtArray(amp.buffers.values, StaticCast{}, dstType);
-    }();
+            return TransformToVtArray(amp.buffers.values, StaticCast{}, dstType);
+        }();
 
-    if (arr.IsEmpty())
+        if (arr.IsEmpty())
+            return false;
+        return dst.Set(arr);
+    } catch (...) {
+        TF_RUNTIME_ERROR("Unable to assign values to attribute");
         return false;
-    return dst.Set(arr);
-} catch (...) {
-    TF_RUNTIME_ERROR("Unable to assign values to attribute");
-    return false;
+    }
 }
 
 } // anon namespace
@@ -285,7 +295,7 @@ bool
 UsdPmcMeshDecoder::Decode(const char* buffer, size_t length,
                           UsdGeomMesh* decodedMesh) {
     if (!decodedMesh) {
-        TF_RUNTIME_ERROR("decodedMesh cannot be null");
+        TF_CODING_ERROR("decodedMesh cannot be null");
         return false;
     }
     if (!_DecodeBitstream(buffer, length, decodedMesh)) {
@@ -299,7 +309,7 @@ bool
 UsdPmcMeshDecoder::_DecodeBitstream(const char* buffer, size_t length,
                                     UsdGeomMesh* decodedMesh) {
     if (!decodedMesh) {
-        TF_RUNTIME_ERROR("decodedMesh cannot be null");
+        TF_CODING_ERROR("decodedMesh cannot be null");
         return false;
     }
     pmc::Decoder::InspectionDelegate inspectFns;
@@ -600,8 +610,6 @@ UsdPmcMeshDecoder::_DecodeBitstream(const char* buffer, size_t length,
                 elementSize = cpv;
             }
 
-            auto cppTypeName = attrTypeName.GetScalarType().GetCPPTypeName();
-
             if (auto usdAttribute = decodedMesh->GetPrim().CreateAttribute(
                     TfToken(attrName.c_str()), attrTypeName)) {
 
@@ -655,7 +663,7 @@ void
 UsdPmcMeshDecoder::_InferNameFromInfo(std::string* attrName,
                                       const pmc::AttributeMeshpartInfo& info) {
     if (!attrName) {
-        TF_RUNTIME_ERROR("attrName cannot be null");
+        TF_CODING_ERROR("attrName cannot be null");
         return;
     }
     switch(info.type) {
@@ -673,8 +681,7 @@ UsdPmcMeshDecoder::_InferNameFromInfo(std::string* attrName,
     }
 }
 
-/// This macro generates code to compare a string type name against a specific
-/// USD value type name and set the output parameter if they match.
+
 #define USD_PMC_CHECK_TYPENAME(typename) \
     if (strTypeName == SdfValueTypeNames->typename.GetAsToken().GetString()) { \
         typeName = SdfValueTypeNames->typename; \
@@ -685,14 +692,16 @@ bool
 UsdPmcMeshDecoder::_GetTypeNameFromString(const std::string_view strTypeName,
                                           SdfValueTypeName* typeName) {
     if (!typeName) {
-        TF_RUNTIME_ERROR("typeName cannot be null");
+        TF_CODING_ERROR("typeName cannot be null");
         return false;
     }
 
-    // Redefine the macro to use pointer syntax
-    #undef USD_PMC_CHECK_TYPENAME
+    /// This macro generates code to compare a string type name against a 
+    /// specific USD value type name and set the output parameter if they
+    /// match.
     #define USD_PMC_CHECK_TYPENAME(typename) \
-        if (strTypeName == SdfValueTypeNames->typename.GetAsToken().GetString()) { \
+        if (strTypeName == SdfValueTypeNames->typename.GetAsToken() \
+            .GetString()) { \
             *typeName = SdfValueTypeNames->typename; \
             return true; \
         }
@@ -760,7 +769,7 @@ bool
 UsdPmcMeshDecoder::_ExtractTypeNameFromUserData(
     SdfValueTypeName* attrTypeName, const VtDictionary& userData) {
     if (!attrTypeName) {
-        TF_RUNTIME_ERROR("attrTypeName cannot be null");
+        TF_CODING_ERROR("attrTypeName cannot be null");
         return false;
     }
     const auto userTypeName = userData.find(kUSDJsonTypeNameKey);
@@ -776,7 +785,7 @@ void
 UsdPmcMeshDecoder::_InferTypeNameFromName(SdfValueTypeName* attrTypeName,
                                           const std::string_view attrName) {
     if (!attrTypeName) {
-        TF_RUNTIME_ERROR("attrTypeName cannot be null");
+        TF_CODING_ERROR("attrTypeName cannot be null");
         return;
     }
     *attrTypeName = SdfValueTypeNames->IntArray;
@@ -795,61 +804,58 @@ bool
 UsdPmcMeshDecoder::_GetUserDataInfo(VtDictionary* userData,
                                     const std::string& jsonUserData) {
     if (!userData) {
-        TF_RUNTIME_ERROR("userData cannot be null");
+        TF_CODING_ERROR("userData cannot be null");
         return false;
     }
-    try {
-        if ( jsonUserData == "" ) {
-            return true;
-        }
-        userData->clear();
-        JsValue jsonData = JsParseString(jsonUserData);
-        if ( jsonData.IsNull()
-            || !jsonData.IsObject() ) {
-            // Early exit: Nothing to parse
-            return true;
-        }
 
-        const auto jsonDictionary = jsonData.GetJsObject();
-        if ( jsonDictionary.find(kUSDJsonMainKey) == jsonDictionary.end() ) {
-            return true;
-        }
-    
-        auto usdJsObject = jsonDictionary.at(kUSDJsonMainKey);
-
-        if ( usdJsObject.IsNull()
-            || !usdJsObject.IsObject() ) {
-            // Early exit: No usd json data
-            return true;
-        }
-
-        auto mainUsdDictionary = usdJsObject.GetJsObject();
-
-        if (mainUsdDictionary.find(kUSDJsonTypeNameKey) !=
-                mainUsdDictionary.end()
-            && !mainUsdDictionary.at(kUSDJsonTypeNameKey).IsNull()
-            && mainUsdDictionary.at(kUSDJsonTypeNameKey).IsString() ) {
-            userData->SetValueAtPath(kUSDJsonTypeNameKey,
-                VtValue(mainUsdDictionary.at(kUSDJsonTypeNameKey).GetString()));
-        }
-
-        if (mainUsdDictionary.find(kUSDJsonSubmeshNamesKey) !=
-                mainUsdDictionary.end()
-            && !mainUsdDictionary.at(kUSDJsonSubmeshNamesKey).IsNull()
-            && mainUsdDictionary.at(kUSDJsonSubmeshNamesKey)
-                   .IsArrayOf<std::string>()) {
-            VtArray<std::string> ssn;
-            for (const auto& currentSSN: mainUsdDictionary
-                     .at(kUSDJsonSubmeshNamesKey).GetArrayOf<std::string>()) {
-                ssn.emplace_back(currentSSN);
-            }
-            userData->SetValueAtPath(kUSDJsonSubmeshNamesKey, VtValue(ssn));
-        }
-
+    if ( jsonUserData == "" ) {
         return true;
-    } catch(...) {
-        return false;
     }
+    userData->clear();
+    JsValue jsonData = JsParseString(jsonUserData);
+    if ( jsonData.IsNull()
+        || !jsonData.IsObject() ) {
+        // Early exit: Nothing to parse
+        return true;
+    }
+
+    const auto jsonDictionary = jsonData.GetJsObject();
+    if ( jsonDictionary.find(kUSDJsonMainKey) == jsonDictionary.end() ) {
+        return true;
+    }
+
+    auto usdJsObject = jsonDictionary.at(kUSDJsonMainKey);
+
+    if ( usdJsObject.IsNull()
+        || !usdJsObject.IsObject() ) {
+        // Early exit: No usd json data
+        return true;
+    }
+
+    auto mainUsdDictionary = usdJsObject.GetJsObject();
+
+    if (mainUsdDictionary.find(kUSDJsonTypeNameKey) !=
+            mainUsdDictionary.end()
+        && !mainUsdDictionary.at(kUSDJsonTypeNameKey).IsNull()
+        && mainUsdDictionary.at(kUSDJsonTypeNameKey).IsString() ) {
+        userData->SetValueAtPath(kUSDJsonTypeNameKey,
+            VtValue(mainUsdDictionary.at(kUSDJsonTypeNameKey).GetString()));
+    }
+
+    if (mainUsdDictionary.find(kUSDJsonSubmeshNamesKey) !=
+            mainUsdDictionary.end()
+        && !mainUsdDictionary.at(kUSDJsonSubmeshNamesKey).IsNull()
+        && mainUsdDictionary.at(kUSDJsonSubmeshNamesKey)
+                .IsArrayOf<std::string>()) {
+        VtArray<std::string> ssn;
+        for (const auto& currentSSN: mainUsdDictionary
+                    .at(kUSDJsonSubmeshNamesKey).GetArrayOf<std::string>()) {
+            ssn.emplace_back(currentSSN);
+        }
+        userData->SetValueAtPath(kUSDJsonSubmeshNamesKey, VtValue(ssn));
+    }
+
+    return true;
 }
 
 PXR_NAMESPACE_CLOSE_SCOPE

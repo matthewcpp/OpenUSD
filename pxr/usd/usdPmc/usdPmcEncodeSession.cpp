@@ -396,13 +396,13 @@ _ToPmc(const VtValue& src)
 
 Qparams _QparamsDefault(const TfToken& pvRole)
 {
-    if (pvRole == pxr::SdfValueRoleNames->Color) {
+    if (pvRole == SdfValueRoleNames->Color) {
         return Qparams{8,8};
     }
-    if (pvRole == pxr::SdfValueRoleNames->Normal) {
+    if (pvRole == SdfValueRoleNames->Normal) {
         return Qparams{10,10};
     }
-    if (pvRole == pxr::SdfValueRoleNames->TextureCoordinate) {
+    if (pvRole == SdfValueRoleNames->TextureCoordinate) {
         return Qparams{12,12};
     }
     return Qparams{14,14};
@@ -456,19 +456,19 @@ _GetMeshFaceTypeFromFaceVertexCounts(const VtArray<int> fvcs)
 }
 
 pmc::AttributeScope
-_GetScopeFromUsd(pxr::TfToken interp)
+_GetScopeFromUsd(TfToken interp)
 {
     using AS = pmc::AttributeScope;
-    if (interp == pxr::UsdGeomTokens->vertex) {
+    if (interp == UsdGeomTokens->vertex) {
         return AS::VERTEX;
     }
-    if (interp == pxr::UsdGeomTokens->varying) {
+    if (interp == UsdGeomTokens->varying) {
         return AS::VERTEX;
     }
-    if (interp == pxr::UsdGeomTokens->faceVarying) {
+    if (interp == UsdGeomTokens->faceVarying) {
         return AS::CORNER;
     }
-    if (interp == pxr::UsdGeomTokens->uniform) {
+    if (interp == UsdGeomTokens->uniform) {
         return AS::FACE;
     }
 
@@ -481,20 +481,20 @@ pmc::AttributeType
 _GuessAttributeType(const TfToken pvRole, const TfToken pvName)
 {
     using AT = pmc::AttributeType;
-    if (pvRole == pxr::SdfValueRoleNames->Color) {
+    if (pvRole == SdfValueRoleNames->Color) {
         return AT::COLOR;
     }
-    if (pvRole == pxr::SdfValueRoleNames->Normal) {
+    if (pvRole == SdfValueRoleNames->Normal) {
         return AT::NORMAL;
     }
-    if (pvRole == pxr::SdfValueRoleNames->TextureCoordinate) {
+    if (pvRole == SdfValueRoleNames->TextureCoordinate) {
         return AT::TEX_COORD;
     }
 
     if (pvName == "uv" || pvName == "UV" || pvName == "st") {
         return AT::TEX_COORD;
     }
-    if (pvName == pxr::UsdGeomTokens->normals) {
+    if (pvName == UsdGeomTokens->normals) {
         return AT::NORMAL;
     }
     if (pvName == "displayColor") {
@@ -748,7 +748,7 @@ UsdPmc_EncodeSession::_setupGeom()
 
     // Calculate quantization parameters for vertex positions
     auto& usdname = UsdGeomTokens->points;
-    _gmp.info << _MakeCoordSys(_gmp, _QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Point));
+    _gmp.info << _MakeCoordSys(_gmp, _QparamsFromOptions(_options, usdname, SdfValueRoleNames->Point));
 
     // Track which attributes have been processed
     _processedAttributes.insert(_ugm.GetFaceVertexCountsAttr().GetName());
@@ -806,7 +806,7 @@ void
 UsdPmc_EncodeSession::_setupPrimvar(const UsdGeomPrimvar& pv)
 {
     // Ignore constant primitives (no point encoding them)
-    if (pv.GetInterpolation() == pxr::UsdGeomTokens->constant) {
+    if (pv.GetInterpolation() == UsdGeomTokens->constant) {
         return;
     }
 
@@ -924,7 +924,7 @@ UsdPmc_EncodeSession::_setupCreases()
     ampVals.info.indicesInterpretation = IndicesInterpretation::VALUE_INDEXING;
     ampVals.info.sparse = true;
     ampVals.info.jsonCustomAui = JsonAuiForAttr(attrVals);
-    ampVals.info << _MakeCoordSys(ampVals, _QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Vector));
+    ampVals.info << _MakeCoordSys(ampVals, _QparamsFromOptions(_options, usdname, SdfValueRoleNames->Vector));
 
     _processedAttributes.insert(attrIdxs.GetName());
     _processedAttributes.insert(attrLens.GetName());
@@ -962,7 +962,7 @@ UsdPmc_EncodeSession::_setupCorners()
     ampVals.info.indicesInterpretation = IndicesInterpretation::VALUE_INDEXING;
     ampVals.info.sparse = true;
     ampVals.info.jsonCustomAui = JsonAuiForAttr(attrVals);
-    ampVals.info << _MakeCoordSys(ampVals, _QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Vector));
+    ampVals.info << _MakeCoordSys(ampVals, _QparamsFromOptions(_options, usdname, SdfValueRoleNames->Vector));
 
     _processedAttributes.insert(attrIdxs.GetName());
     _processedAttributes.insert(attrVals.GetName());
@@ -986,7 +986,7 @@ UsdPmc_EncodeSession::_setupAttrs()
         amp.info.scope = _GetScopeFromUsd(_ugm.GetNormalsInterpolation());
         amp.info.jsonCustomAui = JsonAuiForAttr(attr);
         amp.info.name = attr.GetName();
-        amp.info << _MakeCoordSys(amp, _QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Normal));
+        amp.info << _MakeCoordSys(amp, _QparamsFromOptions(_options, usdname, SdfValueRoleNames->Normal));
         _processedAttributes.insert(attr.GetName());
     }
 
@@ -1010,7 +1010,7 @@ UsdPmc_EncodeSession::_setupAttrs()
         amp.info.scope = pmc::AttributeScope::VERTEX;
         amp.info.jsonCustomAui = JsonAuiForAttr(attr);
         amp.info.name = attr.GetName();
-        amp.info << _MakeCoordSys(amp, _QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Vector));
+        amp.info << _MakeCoordSys(amp, _QparamsFromOptions(_options, usdname, SdfValueRoleNames->Vector));
         _processedAttributes.insert(attr.GetName());
     }
 
@@ -1022,7 +1022,7 @@ UsdPmc_EncodeSession::_setupAttrs()
         amp.info.scope = pmc::AttributeScope::VERTEX;
         amp.info.jsonCustomAui = JsonAuiForAttr(attr);
         amp.info.name = attr.GetName();
-        amp.info << _MakeCoordSys(amp, _QparamsFromOptions(_options, usdname, pxr::SdfValueRoleNames->Vector));
+        amp.info << _MakeCoordSys(amp, _QparamsFromOptions(_options, usdname, SdfValueRoleNames->Vector));
         _processedAttributes.insert(attr.GetName());
     }
 

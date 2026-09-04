@@ -5,12 +5,10 @@
 // https://openusd.org/license.
 //
 
-/// \file usdPmc/usdPmcDecoder.hpp
+/// \file usdPmc/usdPmcDecoder.h
 
 #ifndef USD_PMC_DECODER_H
 #define USD_PMC_DECODER_H
-
-#include "api.h"
 
 #include "pxr/pxr.h"
 #include "pxr/usd/usdGeom/mesh.h"
@@ -33,15 +31,14 @@ PXR_NAMESPACE_OPEN_SCOPE
 /// PMC format to USD's native representation.
 class UsdPmcMeshDecoder {
 public:
-    USDPMC_API UsdPmcMeshDecoder();
-    USDPMC_API ~UsdPmcMeshDecoder();
+    UsdPmcMeshDecoder();
+    ~UsdPmcMeshDecoder();
 
     /// Check if buffer contains valid PMC data that can be decoded.
     /// \param buffer Pointer to the PMC data buffer
     /// \param length Size of the buffer in bytes
     /// \return true if the buffer contains valid PMC data, false otherwise
 
-    USDPMC_API
     bool CanDecode(const char* buffer, size_t length);
 
     /// Decode PMC buffer into UsdGeomMesh.
@@ -50,7 +47,6 @@ public:
     /// \param decodedMesh Pointer to the UsdGeomMesh to populate with decoded data
     /// \return true if decoding was successful, false otherwise
 
-    USDPMC_API
     bool Decode(const char* buffer, size_t length, UsdGeomMesh* decodedMesh);
 
 private:

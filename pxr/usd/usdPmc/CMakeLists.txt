@@ -14,11 +14,12 @@ pxr_library(usdPmc
     INCLUDE_DIRS
 
     CPPFILES
-        # List non-schema cpp files
-        usdPmcDecoder.cpp
         usdPmcEncoder.cpp
         usdPmcFileFormat.cpp
         usdPmcEncodeSession.cpp
+
+    PRIVATE_CLASSES
+        usdPmcDecoder
 
     PYMODULE_CPPFILES
         module.cpp

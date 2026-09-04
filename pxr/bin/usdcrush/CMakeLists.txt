@@ -11,8 +11,5 @@ set(PXR_PACKAGE usd)
 pxr_cpp_bin(usdcrush
         LIBRARIES
         tf
-        sdf
-        usd
-        usdUtils
         usdPmc
         )
