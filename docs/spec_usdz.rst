@@ -69,8 +69,6 @@ following file types:
  +-------------+----------------------------------------+
  | Audio       | **M4A**, **MP3**, **WAV**              |
  +-------------+----------------------------------------+
- | Supporting  | **PMC**              |
- +-------------+----------------------------------------+
 
 The rest of the section goes into more detail about the specification.
 

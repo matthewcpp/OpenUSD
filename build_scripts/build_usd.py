@@ -1970,9 +1970,9 @@ def InstallUSD(context, force, buildArgs):
             extraArgs.append('-DPXR_ENABLE_MATERIALX_SUPPORT=OFF')
 
         if context.buildPmc:
-            extraArgs.append('-DPXR_BUILD_USDPMC=ON')
+            extraArgs.append('-DPXR_BUILD_PMC_PLUGIN=ON')
         else:
-            extraArgs.append('-DPXR_BUILD_USDPMC=OFF')
+            extraArgs.append('-DPXR_BUILD_PMC_PLUGIN=OFF')
 
         if Windows() and not context.targetWasm:
             # Increase the precompiled header buffer limit.

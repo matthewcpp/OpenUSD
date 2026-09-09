@@ -24,7 +24,7 @@ set(DIRS
     plugin
 )
 
-if (${PXR_BUILD_USDPMC})
+if (${PXR_BUILD_PMC_PLUGIN})
     list(APPEND DIRS usdPmc)
 endif()
 

@@ -19,8 +19,6 @@
 #include <array>
 #include <filesystem>
 
-#include <fstream>
-
 PXR_NAMESPACE_USING_DIRECTIVE
 
 TF_DEFINE_PRIVATE_TOKENS(_tokens,
