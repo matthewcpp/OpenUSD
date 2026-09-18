@@ -21,7 +21,7 @@
 
 PXR_NAMESPACE_OPEN_SCOPE
 
-/// \class UsdPmcMeshDecoder
+/// \class UsdPmc_MeshDecoder
 ///
 /// Decode PMC compressed mesh data into UsdGeomMesh.
 ///
@@ -29,10 +29,10 @@ PXR_NAMESPACE_OPEN_SCOPE
 /// compressed mesh data and convert it into USD geometry. It handles the
 /// conversion of compressed geometry, attributes, and metadata from the
 /// PMC format to USD's native representation.
-class UsdPmcMeshDecoder {
+class UsdPmc_MeshDecoder {
 public:
-    UsdPmcMeshDecoder();
-    ~UsdPmcMeshDecoder();
+    UsdPmc_MeshDecoder();
+    ~UsdPmc_MeshDecoder();
 
     /// Check if buffer contains valid PMC data that can be decoded.
     /// \param buffer Pointer to the PMC data buffer

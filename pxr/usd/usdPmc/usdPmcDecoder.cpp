@@ -107,7 +107,11 @@ template<typename T>
 void Scaler::operator()(T* dst, const int* src, size_t width) const
 {
     for (size_t k = 0; k < width; k++) {
-        dst[k] = T((src[k] + origin[k]) * scale);
+        if constexpr (std::is_same_v<T, bool>) {
+            dst[k] = ((src[k] + origin[k]) * scale) != 0;
+        } else {
+            dst[k] = T((src[k] + origin[k]) * scale);
+        }
     }
 }
 
@@ -167,7 +171,7 @@ TransformToVtArray(const pmc::ArrayBuffer& buf, F&& fn)
 {
     VtArray<T> arr;
     arr.resize(buf.vectorCount * buf.componentsPerVector);
-    for (int i = 0, j = 0; i < buf.vectorCount; i++, j += buf.componentsPerVector) {
+    for (size_t i = 0, j = 0; i < buf.vectorCount; i++, j += buf.componentsPerVector) {
         fn(&arr[j], buf.vectorAtIndex<int>(i), buf.componentsPerVector);
     }
     return VtValue(arr);
@@ -239,17 +243,17 @@ SetConvertedScaledBuffer(UsdAttrT& dst, const pmc::AttributeMeshpart& amp) {
 
 //=============================================================================
 
-UsdPmcMeshDecoder::UsdPmcMeshDecoder() : _unnamedAttributeCount(0) {}
+UsdPmc_MeshDecoder::UsdPmc_MeshDecoder() : _unnamedAttributeCount(0) {}
 
-UsdPmcMeshDecoder::~UsdPmcMeshDecoder() {}
+UsdPmc_MeshDecoder::~UsdPmc_MeshDecoder() {}
 
 bool
-UsdPmcMeshDecoder::CanDecode(const char* buffer, size_t length) {
+UsdPmc_MeshDecoder::CanDecode(const char* buffer, size_t length) {
     return _InspectBitstream(buffer, length);
 }
 
 bool
-UsdPmcMeshDecoder::_InspectBitstream(const char* buffer, size_t length) {
+UsdPmc_MeshDecoder::_InspectBitstream(const char* buffer, size_t length) {
     pmc::Decoder::InspectionDelegate inspector;
 
     // Set up geometry meshpart inspection
@@ -292,7 +296,7 @@ UsdPmcMeshDecoder::_InspectBitstream(const char* buffer, size_t length) {
 }
 
 bool
-UsdPmcMeshDecoder::Decode(const char* buffer, size_t length,
+UsdPmc_MeshDecoder::Decode(const char* buffer, size_t length,
                           UsdGeomMesh* decodedMesh) {
     if (!decodedMesh) {
         TF_CODING_ERROR("decodedMesh cannot be null");
@@ -306,7 +310,7 @@ UsdPmcMeshDecoder::Decode(const char* buffer, size_t length,
 }
 
 bool
-UsdPmcMeshDecoder::_DecodeBitstream(const char* buffer, size_t length,
+UsdPmc_MeshDecoder::_DecodeBitstream(const char* buffer, size_t length,
                                     UsdGeomMesh* decodedMesh) {
     if (!decodedMesh) {
         TF_CODING_ERROR("decodedMesh cannot be null");
@@ -465,7 +469,8 @@ UsdPmcMeshDecoder::_DecodeBitstream(const char* buffer, size_t length,
             // UsdGeomSubsets (face only)
             if (attrPart.info.type == pmc::AttributeType::FACE_GROUP
                 && attrPart.info.scope == pmc::AttributeScope::FACE
-                && attrPart.info.indicesInterpretation == pmc::IndicesInterpretation::SCOPE_INDEXING) {
+                && attrPart.info.indicesInterpretation == 
+                    pmc::IndicesInterpretation::SCOPE_INDEXING) {
                 
                 if (userData.find(kUSDJsonSubmeshNamesKey) == userData.end() ||
                     !userData[kUSDJsonSubmeshNamesKey].IsHolding<
@@ -477,7 +482,8 @@ UsdPmcMeshDecoder::_DecodeBitstream(const char* buffer, size_t length,
                 const auto subsetNames =
                     userData[kUSDJsonSubmeshNamesKey].Get<
                         VtArray<std::string>>();
-                if (subsetNames.size() != attrPart.info.vectorCount) {
+                if (subsetNames.size() != 
+                    static_cast<size_t>(attrPart.info.vectorCount)) {
                     TF_RUNTIME_ERROR("Invalid number of subset names");
                     return pmc::Error::STATE_ERROR;
                 }
@@ -539,7 +545,8 @@ UsdPmcMeshDecoder::_DecodeBitstream(const char* buffer, size_t length,
                     return pmc::Error::OK;
                 }
 
-                if (attrPart.info.attributeId == creaseAttrId) {
+                if (attrPart.info.attributeId == 
+                    static_cast<uint32_t>(creaseAttrId)) {
                     UsdAttribute creaseIndices =
                         decodedMesh->CreateCreaseIndicesAttr();
                     if (!creaseIndices.IsValid()) {
@@ -578,11 +585,13 @@ UsdPmcMeshDecoder::_DecodeBitstream(const char* buffer, size_t length,
                     return pmc::Error::OK;
                 }
 
-                if (attrPart.info.attributeId == cornerAttrId) {
+                if (attrPart.info.attributeId == 
+                    static_cast<uint32_t>(cornerAttrId)) {
                     UsdAttribute cornerIndices =
                         decodedMesh->CreateCornerIndicesAttr();
                     if (!cornerIndices.IsValid()) {
-                        TF_RUNTIME_ERROR("Cannot create corner indices attribute");
+                        TF_RUNTIME_ERROR(
+                            "Cannot create corner indices attribute");
                         return pmc::Error::STATE_ERROR;
                     }
                     cornerIndices.Set(attrIndices);
@@ -606,7 +615,8 @@ UsdPmcMeshDecoder::_DecodeBitstream(const char* buffer, size_t length,
             auto cpv = attrPart.info.componentsPerVector;
             auto dimension = attrTypeName.GetScalarType().GetDimensions();
             if ((dimension.size == 0 && cpv > 1) ||
-                (dimension.size > 0 && dimension.d[0] != cpv)) {
+                (dimension.size > 0 && 
+                dimension.d[0] != static_cast<size_t>(cpv))) {
                 elementSize = cpv;
             }
 
@@ -660,7 +670,7 @@ UsdPmcMeshDecoder::_DecodeBitstream(const char* buffer, size_t length,
 }
 
 void
-UsdPmcMeshDecoder::_InferNameFromInfo(std::string* attrName,
+UsdPmc_MeshDecoder::_InferNameFromInfo(std::string* attrName,
                                       const pmc::AttributeMeshpartInfo& info) {
     if (!attrName) {
         TF_CODING_ERROR("attrName cannot be null");
@@ -681,15 +691,8 @@ UsdPmcMeshDecoder::_InferNameFromInfo(std::string* attrName,
     }
 }
 
-
-#define USD_PMC_CHECK_TYPENAME(typename) \
-    if (strTypeName == SdfValueTypeNames->typename.GetAsToken().GetString()) { \
-        typeName = SdfValueTypeNames->typename; \
-        return true; \
-    }
-
 bool
-UsdPmcMeshDecoder::_GetTypeNameFromString(const std::string_view strTypeName,
+UsdPmc_MeshDecoder::_GetTypeNameFromString(const std::string_view strTypeName,
                                           SdfValueTypeName* typeName) {
     if (!typeName) {
         TF_CODING_ERROR("typeName cannot be null");
@@ -766,7 +769,7 @@ UsdPmcMeshDecoder::_GetTypeNameFromString(const std::string_view strTypeName,
 }
 
 bool
-UsdPmcMeshDecoder::_ExtractTypeNameFromUserData(
+UsdPmc_MeshDecoder::_ExtractTypeNameFromUserData(
     SdfValueTypeName* attrTypeName, const VtDictionary& userData) {
     if (!attrTypeName) {
         TF_CODING_ERROR("attrTypeName cannot be null");
@@ -782,7 +785,7 @@ UsdPmcMeshDecoder::_ExtractTypeNameFromUserData(
 }
 
 void
-UsdPmcMeshDecoder::_InferTypeNameFromName(SdfValueTypeName* attrTypeName,
+UsdPmc_MeshDecoder::_InferTypeNameFromName(SdfValueTypeName* attrTypeName,
                                           const std::string_view attrName) {
     if (!attrTypeName) {
         TF_CODING_ERROR("attrTypeName cannot be null");
@@ -801,7 +804,7 @@ UsdPmcMeshDecoder::_InferTypeNameFromName(SdfValueTypeName* attrTypeName,
 }
 
 bool
-UsdPmcMeshDecoder::_GetUserDataInfo(VtDictionary* userData,
+UsdPmc_MeshDecoder::_GetUserDataInfo(VtDictionary* userData,
                                     const std::string& jsonUserData) {
     if (!userData) {
         TF_CODING_ERROR("userData cannot be null");

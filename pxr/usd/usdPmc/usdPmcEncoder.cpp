@@ -52,6 +52,8 @@
 #include <functional>
 #include <type_traits>
 
+#include "pxr/base/tf/fileUtils.h"
+
 PXR_NAMESPACE_OPEN_SCOPE
 
 /// Safely creates the specified directory path, including any missing parent
@@ -481,6 +483,10 @@ bool UsdPmcMeshEncoder::EncodeStage(std::filesystem::path inFile,
             return false;
         }
     }
+
+    // Explicit reset of stage will release any held file pointers before
+    // clearing temp directory below.
+    stage.Reset();
 
     // Clean up temporary directory
     _RemoveTempDir(_tempDir.string());

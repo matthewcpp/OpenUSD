@@ -64,7 +64,7 @@ UsdPmcFileFormat::CanRead(const std::string& filePath) const {
 
         // Inspect the bitstream to confirm it is a valid PMC stream rather
         // than claiming any file with a .pmc extension.
-        UsdPmcMeshDecoder decoder;
+        UsdPmc_MeshDecoder decoder;
         return decoder.CanDecode(bitstreamAsset->GetBuffer().get(), length);
     } catch (...) {
         return false;
@@ -93,11 +93,8 @@ UsdPmcFileFormat::Read(SdfLayer* layer,
                             resolvedPath.c_str(), error.c_str());
         return false;
     }
-    return true;
 
-    TF_RUNTIME_ERROR("Exception: Failed to read from PMC file \"%s\"",
-                        resolvedPath.c_str());
-    return false;
+    return true;
 }
 
 bool
@@ -161,7 +158,7 @@ UsdPmcFileFormat::_ReadFromBuffer(SdfLayer* layer,
         SdfPath("/DecodedUsdMesh"));
 
     // Create PMC decoder instance
-    UsdPmcMeshDecoder decoder;
+    UsdPmc_MeshDecoder decoder;
 
     // Decode the PMC bitstream buffer into the USD mesh
     if (!decoder.Decode(buffer, length, &decodedUsdMesh)) {

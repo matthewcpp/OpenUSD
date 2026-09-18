@@ -568,14 +568,21 @@ pmc::PredictionStrategy
 _GetPredictionStrategyForAttr(const pmc::AttributeMeshpartInfo& ampi)
 {
     using AT = pmc::AttributeType;
+    using AS = pmc::AttributeScope;
     using PS = pmc::PredictionStrategy;
 
-    // XXX: Info can be examined to determine if 
-    // PS::UNITARY_OCTAHEDRAL_NORMAL_VECTOR strategy may be used.
     switch (ampi.type) {
         default:                 return PS::LINEAR;
         case AT::TEX_COORD:      return PS::TEX_COORD_GEOMETRY_GUIDED;
-        case AT::NORMAL:         return PS::LINEAR;
+        case AT::NORMAL:
+            switch (ampi.scope) {
+                // XXX: For AS::CORNER and AS::VERTEX, info can be examined to
+                // determine if PS::UNITARY_OCTAHEDRAL_NORMAL_VECTOR strategy
+                // may be used.
+                case AS::CORNER:    return PS::LINEAR;
+                case AS::VERTEX:    return PS::LINEAR;
+                default:            return PS::LINEAR;
+            }
     }
 }
 
