@@ -240,18 +240,10 @@ _MakeCoordSysByBBox(const pmc::ArrayBuffer& vals, const Qparams& qp)
     return csys;
 }
 
-/// Derive coding coordinate system using environment defined method.
-// If environment variable USD_PMC_COORDSYS_BBOX is 1, bbox method is used.
-// Otherwise, the more appropriate fractional bit method is used.
+/// Derive coding coordinate system using fractional bit method.
 CoordSys
 _MakeCoordSys(const pmc::ArrayBuffer& vals, const Qparams& qp)
 {
-    static bool coordSysModeIsFracBits = [](){
-        const auto ev = getenv("USD_PMC_COORDSYS_BBOX");
-        return (!ev || ev[0] != '1');
-    }();
-    if (!coordSysModeIsFracBits)
-        return _MakeCoordSysByBBox(vals, qp);
     return _MakeCoordSysByFracBits(vals, qp);
 }
 
