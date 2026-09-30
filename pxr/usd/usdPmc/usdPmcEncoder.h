@@ -100,6 +100,7 @@ private:
     bool _RemoveFlattenedReferences();
 
     bool _CreateFlattenOutput (std::filesystem::path input,
+                               std::filesystem::path dest,
                                std::filesystem::path* output);
 };
 
